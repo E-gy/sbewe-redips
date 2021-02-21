@@ -1,0 +1,60 @@
+name: Continuous Testing
+
+on: [push, pull_request]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Utilities
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y lcov valgrind
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    - name: Build
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: cmake --build build --config $BUILD_TYPE
+    - name: Collect base coverage
+      id: collcov
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: lcov --capture -i --directory ./CMakeFiles/sbewe-redips-core-cov.dir -o cov-base.info
+    - name: Unit Test
+      id: testu
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C $BUILD_TYPE -T memcheck --overwrite MemoryCheckCommandOptions="--leak-check=full --error-exitcode=100" --output-on-failure --timeout 120
+    - name: On Unit Test Failure report memcheck logs
+      if: ${{ failure() && steps.testu.outcome == 'failure' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: memcheck-logs
+        path: ${{runner.workspace}}/build/Testing/**/MemoryChecker.*.log
+    - name: Generate Coverage
+      if: ${{ always() && steps.collcov.outcome == 'success' }}
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: make ExperimentalCoverage
+    - name: Collect tests coverage
+      if: ${{ always() && steps.collcov.outcome == 'success' }}
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: lcov --capture --directory ./CMakeFiles/sbewe-redips-core-cov.dir -o cov-test.info
+    - name: Combine to actual coverage
+      if: ${{ always() && steps.collcov.outcome == 'success' }}
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: lcov -a cov-base.info -a cov-test.info -o cov.info
+    - name: Publish coverage to Coveralls
+      if: ${{ always() && steps.collcov.outcome == 'success' }}
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: ${{runner.workspace}}/build/cov.info
