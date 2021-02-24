@@ -4,7 +4,7 @@ Include(FetchContent)
 
 project(sbewe-redips-core VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options("$<$<CONFIG:DEBUG>:-D_DEBUG>")
+add_compile_definitions("$<$<CONFIG:DEBUG>:_DEBUG>")
 
 find_package(Threads)
 
