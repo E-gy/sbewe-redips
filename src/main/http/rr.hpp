@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <strstream>
 
 namespace redips::http {
 
@@ -16,8 +17,14 @@ struct RR {
 	bool hasHeader(Header h);
 	std::optional<std::string> getHeader(const std::string& h);
 	std::optional<std::string> getHeader(Header h);
-	void setHeader(const std::string& h, std::string v);
-	void setHeader(Header h, std::string v);
+	void setHeader(const std::string& h, const std::string& v);
+	void setHeader(Header h, const std::string& v);
+	template<typename V> void setHeader(const std::string& h, const V& v){
+		std::ostringstream s;
+		s << v;
+		return setHeader(h, s.str());
+	}
+	template<typename V> void setHeader(Header h, const V& v){ return setHeader(headerGetStr(h), v); }
 	void removeHeader(const std::string& h);
 	void removeHeader(Header h);
 };
