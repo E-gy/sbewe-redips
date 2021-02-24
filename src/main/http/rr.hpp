@@ -15,6 +15,14 @@ struct Response;
 using SharedRequest = std::shared_ptr<Request>;
 using SharedResponse = std::shared_ptr<Response>;
 
+struct RRReadError {
+	std::optional<Status> asstat;
+	std::string desc;
+	RRReadError(std::string d): asstat(std::nullopt), desc(d) {}
+	RRReadError(Status s, std::string d): asstat(s), desc(d) {}
+};
+using RRReadResult = result<void, RRReadError>;
+
 struct RR {
 	Version version;
 	std::unordered_map<std::string, std::string> headers;
@@ -37,6 +45,8 @@ struct RR {
 	//IO
 	void write(const yasync::io::IORWriter&);
 	protected:
+		virtual RRReadResult readTitle(const std::string&) = 0;
+		RRReadResult readHeaders(const std::string&);
 		virtual void writeTitle(const yasync::io::IORWriter&) = 0;
 		virtual void writeFixHeaders();
 };
@@ -46,6 +56,7 @@ struct Request : public RR {
 	std::string path;
 	Request() = default;
 	protected:
+		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
 };
 
@@ -53,6 +64,7 @@ struct Response : public RR {
 	Status status;
 	Response() = default;
 	protected:
+		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
 		void writeFixHeaders() override;
 };
