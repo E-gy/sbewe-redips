@@ -78,4 +78,18 @@ inline constexpr decltype(CRLF) statusGetMessage(Status status){
 	}
 }
 
+enum class Header {
+	Host, ContentLength, Date, Connection
+};
+
+inline constexpr decltype(CRLF) headerGetStr(Header h){
+	switch(h){
+		case Header::Host: return "Host";
+		case Header::ContentLength: return "Content-Length";
+		case Header::Date: return "Date";
+		case Header::Connection: return "Connection";
+		default: return "";
+	}
+}
+
 }
