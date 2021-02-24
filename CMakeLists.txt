@@ -21,7 +21,7 @@ target_link_libraries(yasync ${CMAKE_THREAD_LIBS_INIT})
 # Core
 
 file(GLOB_RECURSE src_main "${PROJECT_SOURCE_DIR}/src/main/*.hpp" "${PROJECT_SOURCE_DIR}/src/main/*.cpp")
-add_library(sbewe-redips-core SHARED ${src_main} $<TARGET_OBJECTS:yasync>)
+add_library(sbewe-redips-core STATIC ${src_main} $<TARGET_OBJECTS:yasync>)
 include_directories(sbewe-redips-core ${PROJECT_SOURCE_DIR}/lib)
 include_directories(sbewe-redips-core ${PROJECT_SOURCE_DIR}/src/yasync)
 include_directories(sbewe-redips-core ${PROJECT_SOURCE_DIR}/src/main)
