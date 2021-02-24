@@ -5,29 +5,41 @@ Include(FetchContent)
 project(sbewe-redips-core VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 
-# Core
-
 find_package(Threads)
 
+# YAsynC
+
+file(GLOB_RECURSE src_yasync "${PROJECT_SOURCE_DIR}/src/yasync/*.hpp" "${PROJECT_SOURCE_DIR}/src/yasync/*.cpp")
+add_library(yasync OBJECT ${src_yasync})
+include_directories(yasync ${PROJECT_SOURCE_DIR}/src/yasync)
+target_compile_options(yasync PRIVATE
+	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
+)
+target_link_libraries(yasync ${CMAKE_THREAD_LIBS_INIT})
+
+# Core
+
 file(GLOB_RECURSE src_main "${PROJECT_SOURCE_DIR}/src/main/*.hpp" "${PROJECT_SOURCE_DIR}/src/main/*.cpp")
-add_library(sbewe-redips-core SHARED ${src_main})
+add_library(sbewe-redips-core SHARED ${src_main} $<TARGET_OBJECTS:yasync>)
 include_directories(sbewe-redips-core ${PROJECT_SOURCE_DIR}/lib)
+include_directories(sbewe-redips-core ${PROJECT_SOURCE_DIR}/src/yasync)
 include_directories(sbewe-redips-core ${PROJECT_SOURCE_DIR}/src/main)
 target_compile_options(sbewe-redips-core PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
-target_link_libraries(sbewe-redips-core ${CMAKE_THREAD_LIBS_INIT})
 
-add_library(sbewe-redips-core-cov STATIC ${src_main})
+add_library(sbewe-redips-core-cov STATIC ${src_main} $<TARGET_OBJECTS:yasync>)
 include_directories(sbewe-redips-core-cov ${PROJECT_SOURCE_DIR}/lib)
+include_directories(sbewe-redips-core-cov ${PROJECT_SOURCE_DIR}/src/yasync)
 include_directories(sbewe-redips-core-cov ${PROJECT_SOURCE_DIR}/src/main)
 target_compile_options(sbewe-redips-core-cov PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
 target_compile_options(sbewe-redips-core-cov PUBLIC --coverage)
-target_link_libraries(sbewe-redips-core-cov ${CMAKE_THREAD_LIBS_INIT} gcov)
+target_link_libraries(sbewe-redips-core-cov gcov)
 
 # Exe
 
