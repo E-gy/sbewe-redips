@@ -15,6 +15,40 @@ void RR::setHeader(Header h, const std::string& v){ return setHeader(headerGetSt
 void RR::removeHeader(const std::string& h){ headers.erase(h); }
 void RR::removeHeader(Header h){ return removeHeader(headerGetStr(h)); }
 
+yasync::Future<RRReadResult> RR::read(SharedRR rr, yasync::io::IOResource res){
+	return res->read<std::string>(std::string(CRLF)) >> [=](auto rres){
+		if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
+		auto pr = rr->readTitle(*rres.ok());
+		if(pr.isErr()) return yasync::completed(pr);
+		return res->read<std::string>(std::string("\r\n\r\n")) >> [=](auto rres){
+			if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
+			auto pr = rr->readHeaders(*rres.ok());
+			if(pr.isErr()) return yasync::completed(pr);
+			auto bls = rr->getHeader(Header::ContentLength);
+			std::size_t bl = bls.has_value() ? std::stoull(*bls) : 0;
+			if(bl == 0) return yasync::completed(RRReadResult::Ok());
+			return res->read<std::vector<char>>(bl) >> [=](auto rres){
+				if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
+				rr->body = std::move(*rres.ok());
+				return yasync::completed(RRReadResult::Ok());
+			};
+		};
+	};
+}
+
+yasync::Future<result<SharedRequest, RRReadError>> Request::read(SharedRequest rr, yasync::io::IOResource res){
+	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedRequest, RRReadError> {
+		if(auto err = rres.err()) return *err;
+		else return rr;
+	};
+}
+yasync::Future<result<SharedResponse, RRReadError>> Response::read(SharedResponse rr, yasync::io::IOResource res){
+	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedResponse, RRReadError>{
+		if(auto err = rres.err()) return *err;
+		else return rr;
+	};
+}
+
 RRReadResult RR::readHeaders(const std::string& s){
 	std::size_t nhs = 0;
 	while(nhs < s.length()){
@@ -34,6 +68,13 @@ RRReadResult RR::readHeaders(const std::string& s){
 		setHeader(s.substr(hns, hne-hns), s.substr(hvs, nhe));
 		nhs = nhe+2;
 	}
+	auto clh = getHeader(Header::ContentLength);
+	if(clh.has_value()) try {
+		std::stoull(*clh);
+	} catch(std::invalid_argument&){
+		return RRReadError(Status::BAD_REQUEST, "Content length specified but invalid");
+	}
+	else setHeader(Header::ContentLength, 0);
 	return RRReadResult::Ok();
 }
 

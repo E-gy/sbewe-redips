@@ -12,8 +12,10 @@ namespace redips::http {
 
 struct Request;
 struct Response;
+struct RR;
 using SharedRequest = std::shared_ptr<Request>;
 using SharedResponse = std::shared_ptr<Response>;
+using SharedRR = std::shared_ptr<RR>;
 
 struct RRReadError {
 	std::optional<Status> asstat;
@@ -44,6 +46,7 @@ struct RR {
 	void removeHeader(Header h);
 	//IO
 	void write(const yasync::io::IORWriter&);
+	static yasync::Future<RRReadResult> read(SharedRR, yasync::io::IOResource);
 	protected:
 		virtual RRReadResult readTitle(const std::string&) = 0;
 		RRReadResult readHeaders(const std::string&);
@@ -55,6 +58,7 @@ struct Request : public RR {
 	Method method;
 	std::string path;
 	Request() = default;
+	static yasync::Future<result<SharedRequest, RRReadError>> read(SharedRequest, yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
@@ -63,6 +67,7 @@ struct Request : public RR {
 struct Response : public RR {
 	Status status;
 	Response() = default;
+	static yasync::Future<result<SharedResponse, RRReadError>> read(SharedResponse, yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
