@@ -14,6 +14,7 @@ struct RR {
 	Version version;
 	std::unordered_map<std::string, std::string> headers;
 	std::optional<std::vector<char>> body; //TODO byte it up
+	RR() = default;
 	bool hasHeader(const std::string& h);
 	bool hasHeader(Header h);
 	std::optional<std::string> getHeader(const std::string& h);
@@ -38,12 +39,14 @@ struct RR {
 struct Request : public RR {
 	Method method;
 	std::string path;
+	Request() = default;
 	protected:
 		void writeFirstLine(const yasync::io::IORWriter&) override;
 };
 
 struct Response : public RR {
 	Status status;
+	Response() = default;
 	protected:
 		void writeFirstLine(const yasync::io::IORWriter&) override;
 		void writeFixHeaders() override;
