@@ -37,7 +37,7 @@ struct RR {
 	//IO
 	void write(const yasync::io::IORWriter&);
 	protected:
-		virtual void writeFirstLine(const yasync::io::IORWriter&) = 0;
+		virtual void writeTitle(const yasync::io::IORWriter&) = 0;
 		virtual void writeFixHeaders();
 };
 
@@ -46,14 +46,14 @@ struct Request : public RR {
 	std::string path;
 	Request() = default;
 	protected:
-		void writeFirstLine(const yasync::io::IORWriter&) override;
+		void writeTitle(const yasync::io::IORWriter&) override;
 };
 
 struct Response : public RR {
 	Status status;
 	Response() = default;
 	protected:
-		void writeFirstLine(const yasync::io::IORWriter&) override;
+		void writeTitle(const yasync::io::IORWriter&) override;
 		void writeFixHeaders() override;
 };
 

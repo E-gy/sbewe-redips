@@ -15,17 +15,17 @@ void RR::removeHeader(const std::string& h){ headers.erase(h); }
 void RR::removeHeader(Header h){ return removeHeader(headerGetStr(h)); }
 
 void RR::write(const yasync::io::IORWriter& w){
-	writeFirstLine(w);
+	writeTitle(w);
 	writeFixHeaders();
 	for(auto h : headers) w << h.first << HSEP << h.second << CRLF;
 	w << CRLF;
 	if(body.has_value()) w->write(body.value());
 }
 
-void Request::writeFirstLine(const yasync::io::IORWriter& w){
+void Request::writeTitle(const yasync::io::IORWriter& w){
 	w << methodGetStr(method) << SP << path << SP << versionGetStr(version) << CRLF;
 }
-void Response::writeFirstLine(const yasync::io::IORWriter& w){
+void Response::writeTitle(const yasync::io::IORWriter& w){
 	w << versionGetStr(version) << SP << statusGetCode(status) << SP << statusGetMessage(status) << CRLF;
 }
 
