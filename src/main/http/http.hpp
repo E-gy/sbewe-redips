@@ -84,24 +84,24 @@ enum class Status : uint16_t {
  */
 inline constexpr decltype(CRLF) statusGetMessage(Status status){
 	switch(status){
-		case Status::OK: "OK";
-		case Status::BAD_REQUEST: "Bad Request";
-		case Status::UNAUTHORIZED: "Unauthorized";
-		case Status::FORBIDDEN: "Forbidden";
-		case Status::NOT_FOUND: "Not Found";
-		case Status::METHOD_NOT_ALLOWED: "Method Not Allowed";
-		case Status::PROXY_AUTHENTICATION_REQUIRED: "Proxy Authentication Required";
-		case Status::REQUEST_TIMEOUT: "Request Timeout";
-		case Status::PAYLOAD_TOO_LARGE: "Payload Too Large";
-		case Status::URI_TOO_LONG: "URI Too Long";
-		case Status::UPGRADE_REQUIRED: "Upgrade Required";
-		case Status::HEADER_FIELDS_TOO_LARGE: "Request Header Fields Too Large";
-		case Status::INTERNAL_SERVER_ERROR: "Internal Server Error";
-		case Status::NOT_IMPLEMENTED: "Not Implemented";
-		case Status::BAD_GATEWAY: "Bad Gateway";
-		case Status::SERVICE_UNAVAILABLE: "Service Unavailable";
-		case Status::GATEWAY_TIMEOUT: "Gateway Timeout";
-		case Status::HTTP_VERSION_NOT_SUPPORTED: "HTTP Version Not Supported";
+		case Status::OK: return "OK";
+		case Status::BAD_REQUEST: return "Bad Request";
+		case Status::UNAUTHORIZED: return "Unauthorized";
+		case Status::FORBIDDEN: return "Forbidden";
+		case Status::NOT_FOUND: return "Not Found";
+		case Status::METHOD_NOT_ALLOWED: return "Method Not Allowed";
+		case Status::PROXY_AUTHENTICATION_REQUIRED: return "Proxy Authentication Required";
+		case Status::REQUEST_TIMEOUT: return "Request Timeout";
+		case Status::PAYLOAD_TOO_LARGE: return "Payload Too Large";
+		case Status::URI_TOO_LONG: return "URI Too Long";
+		case Status::UPGRADE_REQUIRED: return "Upgrade Required";
+		case Status::HEADER_FIELDS_TOO_LARGE: return "Request Header Fields Too Large";
+		case Status::INTERNAL_SERVER_ERROR: return "Internal Server Error";
+		case Status::NOT_IMPLEMENTED: return "Not Implemented";
+		case Status::BAD_GATEWAY: return "Bad Gateway";
+		case Status::SERVICE_UNAVAILABLE: return "Service Unavailable";
+		case Status::GATEWAY_TIMEOUT: return "Gateway Timeout";
+		case Status::HTTP_VERSION_NOT_SUPPORTED: return "HTTP Version Not Supported";
 		default: return "Private use status";
 	}
 }
