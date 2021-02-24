@@ -6,6 +6,28 @@ namespace redips::http {
 
 constexpr auto CRLF = "\r\n";
 
+enum class Version {
+	HTTP09, HTTP10, HTTP11, HTTP20, HTTP30
+};
+
+inline bool versionIsSupported(Version v){
+	return v == Version::HTTP11;
+}
+
+enum class Method {
+	GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH
+};
+
+inline bool methodIsSupported(Method m){
+	switch(m){
+		case Method::GET:
+		case Method::HEAD:
+		case Method::POST:
+			return true;
+		default: return false;
+	}
+}
+
 enum class Status : uint16_t {
 	OK = 200,
 	BAD_REQUEST = 400,
