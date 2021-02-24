@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <strstream>
+#include <yasync/io.hpp>
 
 namespace redips::http {
 
@@ -27,15 +28,25 @@ struct RR {
 	template<typename V> void setHeader(Header h, const V& v){ return setHeader(headerGetStr(h), v); }
 	void removeHeader(const std::string& h);
 	void removeHeader(Header h);
+	//IO
+	void write(const yasync::io::IORWriter&);
+	protected:
+		virtual void writeFirstLine(const yasync::io::IORWriter&) = 0;
+		virtual void writeFixHeaders();
 };
 
 struct Request : public RR {
 	Method method;
 	std::string path;
+	protected:
+		void writeFirstLine(const yasync::io::IORWriter&) override;
 };
 
 struct Response : public RR {
 	Status status;
+	protected:
+		void writeFirstLine(const yasync::io::IORWriter&) override;
+		void writeFixHeaders() override;
 };
 
 }
