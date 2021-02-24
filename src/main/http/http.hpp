@@ -39,7 +39,7 @@ std::optional<Version> versionFromStr(const std::string& s){
 }
 
 enum class Method {
-	GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH
+	GET, HEAD, POST, PUT, /*DELETE,*/ CONNECT, OPTIONS, TRACE, PATCH
 };
 
 inline bool methodIsSupported(Method m){
@@ -58,7 +58,7 @@ inline constexpr const char* methodGetStr(Method m){
 		case Method::HEAD: return "HEAD";
 		case Method::POST: return "POST";
 		case Method::PUT: return "PUT";
-		case Method::DELETE: return "DELETE";
+		// case Method::DELETE: return "DELETE";
 		case Method::CONNECT: return "CONNECT";
 		case Method::OPTIONS: return "OPTIONS";
 		case Method::TRACE: return "TRACE";
@@ -72,7 +72,7 @@ std::optional<Method> methodFromStr(const std::string& s){
 	if(s == "HEAD") return Method::HEAD;
 	if(s == "POST") return Method::POST;
 	if(s == "PUT") return Method::PUT;
-	if(s == "DELETE") return Method::DELETE;
+	// if(s == "DELETE") return Method::DELETE;
 	if(s == "CONNECT") return Method::CONNECT;
 	if(s == "OPTIONS") return Method::OPTIONS;
 	if(s == "TRACE") return Method::TRACE;
