@@ -41,6 +41,11 @@ target_compile_options(sbewe-redips-core-cov PRIVATE
 target_compile_options(sbewe-redips-core-cov PUBLIC --coverage)
 target_link_libraries(sbewe-redips-core-cov gcov)
 
+if(WIN32)
+	target_link_libraries(sbewe-redips-core wsock32 ws2_32)
+	target_link_libraries(sbewe-redips-core-cov wsock32 ws2_32)
+endif()
+
 # Exe
 
 file(GLOB_RECURSE src_exe "${PROJECT_SOURCE_DIR}/src/exe/*.hpp" "${PROJECT_SOURCE_DIR}/src/exe/*.cpp")
