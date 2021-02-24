@@ -56,8 +56,9 @@ RRReadResult RR::readHeaders(const std::string& s){
 	while(nhs < s.length()){
 		auto nhe = s.find(CRLF, nhs);
 		if(nhe == std::string::npos) return RRReadError(Status::BAD_REQUEST, "Malformed headers");
-		auto colsep = s.find(":", nhs, nhe-nhs);
-		if(colsep == std::string::npos) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
+		if(nhe == nhs) break; //reached body
+		auto colsep = s.find(':', nhs);
+		if(colsep == std::string::npos || colsep > nhe) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
 		std::size_t hns = nhs;
 		for(; hns < colsep && std::isspace(s[hns]); hns++);
 		if(hns == colsep) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
@@ -67,7 +68,7 @@ RRReadResult RR::readHeaders(const std::string& s){
 		std::size_t hvs = colsep+1;
 		for(; hvs < nhe && std::isspace(s[hvs]); hvs++);
 		if(hvs == nhe) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
-		setHeader(s.substr(hns, hne-hns), s.substr(hvs, nhe));
+		setHeader(s.substr(hns, hne+1-hns), s.substr(hvs, nhe-hvs));
 		nhs = nhe+2;
 	}
 	auto clh = getHeader(Header::ContentLength);
@@ -81,7 +82,7 @@ RRReadResult RR::readHeaders(const std::string& s){
 }
 
 RRReadResult Request::readTitle(const std::string& l){
-	if(std::count(l.begin(), l.end(), SP) != 3) return RRReadError(Status::BAD_REQUEST, "Malformed title");
+	if(std::count(l.begin(), l.end(), SP) != 2) return RRReadError(Status::BAD_REQUEST, "Malformed title");
 	std::istringstream s(l);
 	std::string ms, ps, vs;
 	s >> ms >> ps >> vs;
@@ -98,7 +99,7 @@ RRReadResult Request::readTitle(const std::string& l){
 }
 
 RRReadResult Response::readTitle(const std::string& l){
-	if(std::count(l.begin(), l.end(), SP) != 3) return RRReadError(Status::BAD_REQUEST, "Malformed title");
+	if(std::count(l.begin(), l.end(), SP) != 2) return RRReadError(Status::BAD_REQUEST, "Malformed title");
 	std::istringstream s(l);
 	std::string vs, scs, sms;
 	s >> vs >> scs >> sms;
