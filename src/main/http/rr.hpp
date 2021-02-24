@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <strstream>
+#include <sstream>
 #include <yasync/io.hpp>
 
 namespace redips::http {

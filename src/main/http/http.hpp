@@ -16,7 +16,7 @@ inline bool versionIsSupported(Version v){
 	return v == Version::HTTP11;
 }
 
-inline constexpr decltype(CRLF) versionGetStr(Version v){
+inline constexpr const char* versionGetStr(Version v){
 	switch(v){
 		case Version::HTTP09: return "HTTP/0.9";
 		case Version::HTTP10: return "HTTP/1.0";
@@ -41,7 +41,7 @@ inline bool methodIsSupported(Method m){
 	}
 }
 
-inline constexpr decltype(CRLF) methodGetStr(Method m){
+inline constexpr const char* methodGetStr(Method m){
 	switch(m){
 		case Method::GET: return "GET";
 		case Method::HEAD: return "HEAD";
@@ -77,12 +77,16 @@ enum class Status : uint16_t {
 	HTTP_VERSION_NOT_SUPPORTED = 505
 };
 
+inline constexpr uint16_t statusGetCode(Status s){
+	return static_cast<uint16_t>(s);
+}
+
 /**
  * Get human readable message for HTTP status
  * @param status http status
  * @returns @const string human readabale description for the status
  */
-inline constexpr decltype(CRLF) statusGetMessage(Status status){
+inline constexpr const char* statusGetMessage(Status status){
 	switch(status){
 		case Status::OK: return "OK";
 		case Status::BAD_REQUEST: return "Bad Request";
@@ -110,7 +114,7 @@ enum class Header {
 	Host, ContentLength, Date, Connection
 };
 
-inline constexpr decltype(CRLF) headerGetStr(Header h){
+inline constexpr const char* headerGetStr(Header h){
 	switch(h){
 		case Header::Host: return "Host";
 		case Header::ContentLength: return "Content-Length";

@@ -26,7 +26,7 @@ void Request::writeFirstLine(const yasync::io::IORWriter& w){
 	w << methodGetStr(method) << SP << path << SP << versionGetStr(version) << CRLF;
 }
 void Response::writeFirstLine(const yasync::io::IORWriter& w){
-	w << versionGetStr(version) << SP << status << SP << statusGetMessage(status) << CRLF;
+	w << versionGetStr(version) << SP << statusGetCode(status) << SP << statusGetMessage(status) << CRLF;
 }
 
 void RR::writeFixHeaders(){
