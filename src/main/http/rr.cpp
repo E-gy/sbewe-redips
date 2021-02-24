@@ -99,7 +99,7 @@ RRReadResult Request::readTitle(const std::string& l){
 }
 
 RRReadResult Response::readTitle(const std::string& l){
-	if(std::count(l.begin(), l.end(), SP) != 2) return RRReadError(Status::BAD_REQUEST, "Malformed title");
+	if(std::count(l.begin(), l.end(), SP) < 2) return RRReadError(Status::BAD_REQUEST, "Malformed title");
 	std::istringstream s(l);
 	std::string vs, scs, sms;
 	s >> vs >> scs >> sms;
