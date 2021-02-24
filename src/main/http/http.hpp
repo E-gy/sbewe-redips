@@ -1,10 +1,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
+#include <optional>
 
 namespace redips::http {
 
-constexpr auto SP = " ";
+constexpr auto SP = ' ';
 constexpr auto CRLF = "\r\n";
 constexpr auto HSEP = ": ";
 
@@ -25,6 +27,15 @@ inline constexpr const char* versionGetStr(Version v){
 		case Version::HTTP30: return "HTTP/3.0";
 		default: return "UNK";
 	}
+}
+
+std::optional<Version> versionFromStr(const std::string& s){
+	if(s == "HTTP/0.9") return Version::HTTP09;
+	if(s == "HTTP/1.0") return Version::HTTP10;
+	if(s == "HTTP/1.1") return Version::HTTP11;
+	if(s == "HTTP/2.0") return Version::HTTP20;
+	if(s == "HTTP/3.0") return Version::HTTP30;
+	return std::nullopt;
 }
 
 enum class Method {
@@ -56,6 +67,19 @@ inline constexpr const char* methodGetStr(Method m){
 	}
 }
 
+std::optional<Method> methodFromStr(const std::string& s){
+	if(s == "GET") return Method::GET;
+	if(s == "HEAD") return Method::HEAD;
+	if(s == "POST") return Method::POST;
+	if(s == "PUT") return Method::PUT;
+	if(s == "DELETE") return Method::DELETE;
+	if(s == "CONNECT") return Method::CONNECT;
+	if(s == "OPTIONS") return Method::OPTIONS;
+	if(s == "TRACE") return Method::TRACE;
+	if(s == "PATCH") return Method::PATCH;
+	return std::nullopt;
+}
+
 enum class Status : uint16_t {
 	OK = 200,
 	BAD_REQUEST = 400,
@@ -79,6 +103,32 @@ enum class Status : uint16_t {
 
 inline constexpr uint16_t statusGetCode(Status s){
 	return static_cast<uint16_t>(s);
+}
+
+template<typename Int> std::optional<Status> statusFromCode(Int code){
+	auto s = static_cast<Status>(code);
+	switch(s){
+		case Status::OK:
+		case Status::BAD_REQUEST:
+		case Status::UNAUTHORIZED:
+		case Status::FORBIDDEN:
+		case Status::NOT_FOUND:
+		case Status::METHOD_NOT_ALLOWED:
+		case Status::PROXY_AUTHENTICATION_REQUIRED:
+		case Status::REQUEST_TIMEOUT:
+		case Status::PAYLOAD_TOO_LARGE:
+		case Status::URI_TOO_LONG:
+		case Status::UPGRADE_REQUIRED:
+		case Status::HEADER_FIELDS_TOO_LARGE:
+		case Status::INTERNAL_SERVER_ERROR:
+		case Status::NOT_IMPLEMENTED:
+		case Status::BAD_GATEWAY:
+		case Status::SERVICE_UNAVAILABLE:
+		case Status::GATEWAY_TIMEOUT:
+		case Status::HTTP_VERSION_NOT_SUPPORTED:
+			return s;
+		default: return std::nullopt;
+	}
 }
 
 /**
