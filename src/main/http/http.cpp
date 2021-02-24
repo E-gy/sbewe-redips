@@ -1,5 +1,3 @@
-#pragma once
-
 #include "http.hpp"
 
 namespace redips::http {
