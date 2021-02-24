@@ -36,13 +36,15 @@ yasync::Future<RRReadResult> RR::read(SharedRR rr, yasync::io::IOResource res){
 	};
 }
 
-yasync::Future<result<SharedRequest, RRReadError>> Request::read(SharedRequest rr, yasync::io::IOResource res){
+yasync::Future<result<SharedRequest, RRReadError>> Request::read(yasync::io::IOResource res){
+	SharedRequest rr(new Request());
 	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedRequest, RRReadError> {
 		if(auto err = rres.err()) return *err;
 		else return rr;
 	};
 }
-yasync::Future<result<SharedResponse, RRReadError>> Response::read(SharedResponse rr, yasync::io::IOResource res){
+yasync::Future<result<SharedResponse, RRReadError>> Response::read(yasync::io::IOResource res){
+	SharedResponse rr(new Response());
 	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedResponse, RRReadError>{
 		if(auto err = rres.err()) return *err;
 		else return rr;

@@ -58,7 +58,7 @@ struct Request : public RR {
 	Method method;
 	std::string path;
 	Request() = default;
-	static yasync::Future<result<SharedRequest, RRReadError>> read(SharedRequest, yasync::io::IOResource);
+	static yasync::Future<result<SharedRequest, RRReadError>> read(yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
@@ -67,7 +67,7 @@ struct Request : public RR {
 struct Response : public RR {
 	Status status;
 	Response() = default;
-	static yasync::Future<result<SharedResponse, RRReadError>> read(SharedResponse, yasync::io::IOResource);
+	static yasync::Future<result<SharedResponse, RRReadError>> read(yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
