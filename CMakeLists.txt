@@ -16,7 +16,6 @@ target_compile_options(yasync PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
-target_link_libraries(yasync ${CMAKE_THREAD_LIBS_INIT})
 
 # Core
 
@@ -29,6 +28,7 @@ target_compile_options(sbewe-redips-core PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
+target_link_libraries(sbewe-redips-core ${CMAKE_THREAD_LIBS_INIT})
 
 add_library(sbewe-redips-core-cov STATIC ${src_main} $<TARGET_OBJECTS:yasync>)
 include_directories(sbewe-redips-core-cov ${PROJECT_SOURCE_DIR}/lib)
@@ -39,7 +39,7 @@ target_compile_options(sbewe-redips-core-cov PRIVATE
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
 target_compile_options(sbewe-redips-core-cov PUBLIC --coverage)
-target_link_libraries(sbewe-redips-core-cov gcov)
+target_link_libraries(sbewe-redips-core-cov ${CMAKE_THREAD_LIBS_INIT} gcov)
 
 if(WIN32)
 	target_link_libraries(sbewe-redips-core wsock32 ws2_32)
