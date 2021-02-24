@@ -10,6 +10,11 @@
 
 namespace redips::http {
 
+struct Request;
+struct Response;
+using SharedRequest = std::shared_ptr<Request>;
+using SharedResponse = std::shared_ptr<Response>;
+
 struct RR {
 	Version version;
 	std::unordered_map<std::string, std::string> headers;
