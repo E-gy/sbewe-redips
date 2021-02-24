@@ -4,7 +4,9 @@
 
 namespace redips::http {
 
+constexpr auto SP = " ";
 constexpr auto CRLF = "\r\n";
+constexpr auto HSEP = ": ";
 
 enum class Version {
 	HTTP09, HTTP10, HTTP11, HTTP20, HTTP30
@@ -12,6 +14,17 @@ enum class Version {
 
 inline bool versionIsSupported(Version v){
 	return v == Version::HTTP11;
+}
+
+inline constexpr decltype(CRLF) versionGetStr(Version v){
+	switch(v){
+		case Version::HTTP09: return "HTTP/0.9";
+		case Version::HTTP10: return "HTTP/1.0";
+		case Version::HTTP11: return "HTTP/1.1";
+		case Version::HTTP20: return "HTTP/2.0";
+		case Version::HTTP30: return "HTTP/3.0";
+		default: return "UNK";
+	}
 }
 
 enum class Method {
@@ -25,6 +38,21 @@ inline bool methodIsSupported(Method m){
 		case Method::POST:
 			return true;
 		default: return false;
+	}
+}
+
+inline constexpr decltype(CRLF) methodGetStr(Method m){
+	switch(m){
+		case Method::GET: return "GET";
+		case Method::HEAD: return "HEAD";
+		case Method::POST: return "POST";
+		case Method::PUT: return "PUT";
+		case Method::DELETE: return "DELETE";
+		case Method::CONNECT: return "CONNECT";
+		case Method::OPTIONS: return "OPTIONS";
+		case Method::TRACE: return "TRACE";
+		case Method::PATCH: return "PATCH";
+		default: return "UNK";
 	}
 }
 
