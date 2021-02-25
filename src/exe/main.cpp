@@ -89,7 +89,6 @@ int main(int argc, char* args[]){
 										};
 									} else std::cerr << "failed to proxied connect (after await): " << *connar.err() << "\n";
 								};
-								std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 							} else std::cerr << "failed to proxied connect: " << *conres.err() << "\n";
 						} else std::cerr << "failed to get proxied address space: " << *addrspaceres.err() << "\n";
 					} else std::cerr << "Read error " << rr.err()->desc << "\n";
