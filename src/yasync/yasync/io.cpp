@@ -126,7 +126,6 @@ class FileResource : public IAIOResource {
 		FileResource(FileResource&& mov) = delete;
 		~FileResource(){}
 		Future<ReadResult> _read(size_t bytes){
-			engif->s = FutureState::Running;
 			//self.get() == this   exists to memory-lock dangling IO resource to this lambda generator
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* engine, bool& done, std::vector<char>& data) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(data);
@@ -208,13 +207,16 @@ class FileResource : public IAIOResource {
 						}
 					}
 				}
-				if(auto e = epollRearm(false).err()) return ReadResult::Err(*e);
+				if(auto e = epollRearm(false).err()){
+					std::cout << "epoll rearm failed for " << engif.get() << "\n";
+					done = true;
+					return ReadResult::Err(*e);
+				}
 				#endif
 				return engif;
 			}, std::vector<char>()));
 		}
 		Future<WriteResult> _write(std::vector<char>&& data){
-			engif->s = FutureState::Running;
 			return defer(lambdagen([this, self = slf.lock()]([[maybe_unused]] const Yengine* engine, bool& done, std::vector<char>& data) -> std::variant<AFuture, movonly<WriteResult>> {
 				if(data.empty()) done = true;
 				if(done) return WriteResult::Ok();
@@ -282,7 +284,11 @@ class FileResource : public IAIOResource {
 						}
 					}
 				}
-				if(auto e = epollRearm(true).err()) return WriteResult::Err(*e);
+				if(auto e = epollRearm(true).err()){
+					std::cout << "epoll rearm failed for " << engif.get() << "\n";
+					done = true;
+					return WriteResult::Err(*e);
+				}
 				#endif
 				return engif;
 			}, data));
