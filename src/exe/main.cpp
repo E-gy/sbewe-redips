@@ -21,6 +21,7 @@ int main(int argc, char* args[]){
 				std::cerr << "Listen error: " << printSysNetError(location, err) << "\n";
 				return false;
 			}, []([[maybe_unused]] const sockaddr_in& remote, const IOResource& conn){
+				std::cout << "conn!\n";
 				conn->engine->engine <<= http::Request::read(conn) >> [=](auto rr){
 					if(rr.isOk()){
 						std::cout << "Received request!\n";
