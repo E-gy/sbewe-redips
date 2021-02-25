@@ -50,16 +50,8 @@ int main(int argc, char* args[]){
 				conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
 					std::cout << "Received request!\n";
 					//Proxy go!
-					::addrinfo hints = {};
-					hints.ai_family = AF_INET;
-					hints.ai_socktype = SOCK_STREAM;
-					hints.ai_protocol = IPPROTO_TCP;
-					NetworkedAddressInfo::find("93.184.216.34", "80", hints).ifElse([=](auto addrspace){
-						sockaddr_in bind0 = {};
-						bind0.sin_family = AF_INET;
-						bind0.sin_addr.s_addr = INADDR_ANY;
-						bind0.sin_port = 0;
-						netConnectTo<AF_INET, SOCK_STREAM, IPPROTO_TCP>(conn->engine, &addrspace, bind0).ifElse([=](auto connf){
+					NetworkedAddressInfo::find<AF_INET, SOCK_STREAM, IPPROTO_TCP>("93.184.216.34", "80").ifElse([=](auto addrspace){
+						netConnectTo<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(conn->engine, &addrspace).ifElse([=](auto connf){
 							conn->engine->engine <<= connf >> ([=](auto proxyconn){
 								std::cout << "Proxied connection ready wooo!!!\n";
 								auto w = proxyconn->writer();
@@ -83,11 +75,7 @@ int main(int argc, char* args[]){
 				});
 				return result<void, std::string>::Ok();
 			}).ifElse([&](auto listener){
-				::addrinfo hints = {};
-				hints.ai_family = AF_INET;
-				hints.ai_socktype = SOCK_STREAM;
-				hints.ai_protocol = IPPROTO_TCP;
-				NetworkedAddressInfo::find("localhost", "5050", hints).ifElse([&](auto addrspace){
+				NetworkedAddressInfo::find<AF_INET, SOCK_STREAM, IPPROTO_TCP>("localhost", "5050").ifElse([&](auto addrspace){
 					listener->listen(&addrspace).ifElse([&](auto listenp){
 						std::cout << "listening...\n";
 						interproc::extNotifyReady(argc, args);
