@@ -3,14 +3,39 @@
 #include <yasync.hpp>
 #include <http/rr.hpp>
 #include <util/interproc.hpp>
+#include <config/config.hpp>
 
 #include <iostream>
+#include <fstream>
 
 using namespace redips;
 using namespace yasync;
 using namespace yasync::io;
 
+result<config::Config, std::string> parseArgs(int argc, char* args[], bool& dry){
+	if(argc < 2) return std::string("No config file given!"); //TODO better args parsing?
+	std::string cfgfnam;
+	if(argc == 2) cfgfnam = args[1];
+	else {
+		if(argc > 3) std::cerr << "WARN: ignoring superflous arguments\n";
+		if(std::string(args[1]) == "-t") dry = true;
+		else return std::string("Unknown switch");
+		cfgfnam = args[2];
+	}
+	std::ifstream cfgf(cfgfnam);
+	if(cfgf.fail()) return std::string("Couldn't read config file");
+	return config::parse(cfgf);
+}
+
 int main(int argc, char* args[]){
+	bool dry = false;
+	auto par = parseArgs(argc, args, dry);
+	if(auto err = par.err()){
+		std::cerr << *err << "\n";
+		return 1;
+	}
+	auto config = *par.ok();
+	if(dry || config.vhosts.empty()) return 0;
 	SystemNetworkingStateControl _sysnet;
 	{
 		Yengine engine(4);
