@@ -45,8 +45,8 @@ target_compile_options(sbewe-redips-core-cov PUBLIC --coverage)
 target_link_libraries(sbewe-redips-core-cov ${CMAKE_THREAD_LIBS_INIT} gcov)
 
 if(WIN32)
-	target_link_libraries(sbewe-redips-core wsock32 ws2_32 "$<$<CONFIG:DEBUG>:dbghelp>")
-	target_link_libraries(sbewe-redips-core-cov wsock32 ws2_32 "$<$<CONFIG:DEBUG>:dbghelp>")
+	target_link_libraries(sbewe-redips-core ws2_32 "$<$<CONFIG:DEBUG>:dbghelp>")
+	target_link_libraries(sbewe-redips-core-cov ws2_32 "$<$<CONFIG:DEBUG>:dbghelp>")
 endif()
 
 # Exe
