@@ -8,6 +8,8 @@ add_compile_definitions("$<$<CONFIG:DEBUG>:_DEBUG>")
 
 find_package(Threads)
 
+SET (CMAKE_ENABLE_EXPORTS TRUE)
+
 # YAsynC
 
 file(GLOB_RECURSE src_yasync "${PROJECT_SOURCE_DIR}/src/yasync/*.hpp" "${PROJECT_SOURCE_DIR}/src/yasync/*.cpp")
