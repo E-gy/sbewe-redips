@@ -1,6 +1,7 @@
 #include "config.hpp"
 
 #include <util/json.hpp>
+#include <util/ip.hpp>
 
 using nlohmann::json;
 
@@ -17,7 +18,8 @@ void from_json(const json& j, VHost& vh){
 	j.at("server_name").get_to(vh.serverName);
 	j.at("root").get_to(vh.root);
 	if(j.contains("default_file")) vh.defaultFile = j.at("default_file").get<std::string>();
-	//TODO validate
+	if(!isValidIP(vh.ip)) throw json::type_error::create(301, "Address string is not a valid ip address");
+	if(!isValidPort(vh.port)) throw json::type_error::create(301, "Port number out of bounds");
 }
 
 void to_json(json& j, const Config& c){
