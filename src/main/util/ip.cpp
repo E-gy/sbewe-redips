@@ -13,7 +13,7 @@ bool isValidIPv4(const std::string& str){
 
 bool isValidIPv6(const std::string& str){
 	char _[sizeof(::in6_addr)];
-	return ::inet_pton(AF_INET, str.c_str(), &_) == 1;
+	return ::inet_pton(AF_INET6, str.c_str(), &_) == 1;
 }
 
 bool isValidIP(const std::string& str){ return isValidIPv6(str) || isValidIPv4(str); }
