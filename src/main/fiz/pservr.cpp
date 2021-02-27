@@ -17,10 +17,8 @@ template<typename LiSo> class P2VListener : public IListener {
 		yasync::Future<void> liend;
 		P2VListener(LiSo s, yasync::Future<void> e) : liso(s), liend(e) {}
 		~P2VListener() = default;
-		yasync::Future<void> shutdown() override {
-			liso->shutdown();
-			return liend;
-		}
+		yasync::Future<void> onShutdown() override { return liend; };
+		void shutdown() override { liso->shutdown(); }
 };
 
 template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const std::string& addr, unsigned port, virt::SServer vs){

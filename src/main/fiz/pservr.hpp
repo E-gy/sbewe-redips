@@ -8,7 +8,8 @@ namespace redips::fiz {
 class IListener {
 	public:
 		virtual ~IListener() = default;
-		virtual yasync::Future<void> shutdown() = 0;
+		virtual yasync::Future<void> onShutdown() = 0;
+		virtual void shutdown() = 0;
 };
 
 using SListener = std::shared_ptr<IListener>;
