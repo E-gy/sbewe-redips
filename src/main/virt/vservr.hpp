@@ -9,4 +9,6 @@ class IServer {
 		virtual void take(yasync::io::IOResource, redips::http::SharedRequest) = 0;
 };
 
+using SServer = std::shared_ptr<IServer>;
+
 }
