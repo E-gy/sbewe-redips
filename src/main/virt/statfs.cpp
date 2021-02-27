@@ -39,7 +39,7 @@ void StaticFileServer::take(yasync::io::IOResource conn, redips::http::SharedReq
 	};
 	if(getFileType(relp) != FileType::File){
 		resp->status = http::Status::NOT_FOUND;
-		resp->setBody(std::string("File not found :("));
+		resp->setBody("File not found :(");
 		conn->engine->engine <<= immwr();
 	} else {
 		yasync::io::fileOpenRead(conn->engine, relp).ifElse([=](auto f) mutable {

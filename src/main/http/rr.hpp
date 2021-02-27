@@ -49,6 +49,7 @@ struct RR {
 	void removeBody();
 	template<typename Iter> void setBody(const Iter& s, const Iter& e){ body = std::vector<char>(s, e); }
 	template<typename T> void setBody(const T& dr){ setBody(dr.begin(), dr.end()); }
+	void setBody(const char*);
 	//IO
 	void write(const yasync::io::IORWriter&);
 	static yasync::Future<RRReadResult> read(SharedRR, yasync::io::IOResource);

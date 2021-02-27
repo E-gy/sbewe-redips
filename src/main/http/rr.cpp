@@ -19,6 +19,10 @@ template<> void RR::setBody<std::vector<char>>(const std::vector<char>& data){
 	body = data;
 }
 
+void RR::setBody(const char* data){
+	body = std::vector<char>(data, data+::strlen(data));
+}
+
 yasync::Future<RRReadResult> RR::read(SharedRR rr, yasync::io::IOResource res){
 	return res->read<std::string>(std::string(CRLF)) >> [=](auto rres){
 		if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
