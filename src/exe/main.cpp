@@ -11,6 +11,7 @@
 using namespace redips;
 using namespace yasync;
 using namespace yasync::io;
+using namespace magikop;
 
 result<config::Config, std::string> parseArgs(int argc, char* args[], bool& dry){
 	if(argc < 2) return std::string("No config file given!"); //TODO better args parsing?
@@ -50,8 +51,8 @@ int main(int argc, char* args[]){
 				conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
 					std::cout << "Received request!\n";
 					//Proxy go!
-					NetworkedAddressInfo::find<AF_INET, SOCK_STREAM, IPPROTO_TCP>("93.184.216.34", "80").ifElse([=](auto addrspace){
-						netConnectTo<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(conn->engine, &addrspace).ifElse([=](auto connf){
+					NetworkedAddressInfo::find<AF_INET, SOCK_STREAM, IPPROTO_TCP>("93.184.216.34", "80") >> ([=](auto addrspace){
+						netConnectTo<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(conn->engine, &addrspace) >> ([=](auto connf){
 							conn->engine->engine <<= connf >> ([=](auto proxyconn){
 								std::cout << "Proxied connection ready wooo!!!\n";
 								auto w = proxyconn->writer();
@@ -68,15 +69,15 @@ int main(int argc, char* args[]){
 									}|[](auto err){ std::cerr << "read proxied response error " << err.desc << "\n"; });
 								}|[](auto err){ std::cerr << "send proxied request error " << err << "\n"; });
 							}|[](auto err){ std::cerr << "failed to proxied connect (after await): " << err << "\n"; });
-						}, [](auto err){ std::cerr << "failed to proxied connect: " << err << "\n"; });
-					}, [](auto err){ std::cerr << "failed to get proxied address space: " << err << "\n"; });
+						}|[](auto err){ std::cerr << "failed to proxied connect: " << err << "\n"; });
+					}|[](auto err){ std::cerr << "failed to get proxied address space: " << err << "\n"; });
 				}|[=](auto err){
 					std::cerr << "Read error " << err.desc << "\n";
 				});
 				return result<void, std::string>::Ok();
-			}).ifElse([&](auto listener){
-				NetworkedAddressInfo::find<AF_INET, SOCK_STREAM, IPPROTO_TCP>("localhost", "5050").ifElse([&](auto addrspace){
-					listener->listen(&addrspace).ifElse([&](auto listenp){
+			}) >> ([&](auto listener){
+				NetworkedAddressInfo::find<AF_INET, SOCK_STREAM, IPPROTO_TCP>("localhost", "5050") >> ([&](auto addrspace){
+					listener->listen(&addrspace) >> ([&](auto listenp){
 						std::cout << "listening...\n";
 						interproc::extNotifyReady(argc, args);
 						engine <<= *timeToStahp >> [=]{
@@ -85,9 +86,9 @@ int main(int argc, char* args[]){
 						};
 						blawait(&engine, listenp);
 						std::cout << "done listening\n";
-					}, [](auto err){ std::cerr << "failed to listen: " << err << "\n"; });
-				}, [](auto err){ std::cerr << "failed to get address space: " << err << "\n"; });
-			}, [](auto err){ std::cerr << "failed to create listening socket: " << err << "\n"; });
+					}|[](auto err){ std::cerr << "failed to listen: " << err << "\n"; });
+				}|[](auto err){ std::cerr << "failed to get address space: " << err << "\n"; });
+			}|[](auto err){ std::cerr << "failed to create listening socket: " << err << "\n"; });
 			CtrlC::un(&engine);
 		} else std::cerr << "failed to set up ctrl+c listener: " << *timeToStahpRes.err() << "\n";
 		std::cout << "putting an end to the work loop\n";
