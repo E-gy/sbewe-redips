@@ -44,6 +44,11 @@ struct RR {
 	template<typename V> void setHeader(Header h, const V& v){ return setHeader(headerGetStr(h), v); }
 	void removeHeader(const std::string& h);
 	void removeHeader(Header h);
+	//body
+	bool hasBody();
+	void removeBody();
+	template<typename Iter> void setBody(const Iter& s, const Iter& e){ body = std::vector<char>(s, e); }
+	template<typename T> void setBody(const T& dr){ setBody(dr.begin(), dr.end()); }
 	//IO
 	void write(const yasync::io::IORWriter&);
 	static yasync::Future<RRReadResult> read(SharedRR, yasync::io::IOResource);
@@ -53,6 +58,8 @@ struct RR {
 		virtual void writeTitle(const yasync::io::IORWriter&) = 0;
 		virtual void writeFixHeaders();
 };
+
+template<> void RR::setBody<std::vector<char>>(const std::vector<char>& data);
 
 struct Request : public RR {
 	Method method;

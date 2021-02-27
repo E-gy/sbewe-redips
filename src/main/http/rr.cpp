@@ -15,6 +15,10 @@ void RR::setHeader(Header h, const std::string& v){ return setHeader(headerGetSt
 void RR::removeHeader(const std::string& h){ headers.erase(h); }
 void RR::removeHeader(Header h){ return removeHeader(headerGetStr(h)); }
 
+template<> void RR::setBody<std::vector<char>>(const std::vector<char>& data){
+	body = data;
+}
+
 yasync::Future<RRReadResult> RR::read(SharedRR rr, yasync::io::IOResource res){
 	return res->read<std::string>(std::string(CRLF)) >> [=](auto rres){
 		if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
