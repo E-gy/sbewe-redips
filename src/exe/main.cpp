@@ -13,6 +13,8 @@
 #include <utility>
 #include <fstream>
 
+namespace redips {
+
 using namespace redips;
 using namespace magikop;
 
@@ -85,4 +87,11 @@ int main(int argc, char* args[]){
 	}
 	std::cout << "slaying d~~a~~emons\n";
 	Daemons::waitForEveryoneToStop();
+	return 0;
+}
+
+}
+
+int main(int argc, char* args[]){
+	return redips::main(argc, args);
 }
