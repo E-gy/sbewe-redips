@@ -26,7 +26,7 @@ struct RRReadError {
 using RRReadResult = result<void, RRReadError>;
 
 struct RR {
-	Version version;
+	Version version = http::Version::HTTP11;
 	std::unordered_map<std::string, std::string> headers;
 	std::optional<std::vector<char>> body; //TODO byte it up
 	RR() = default;
