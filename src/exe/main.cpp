@@ -1,5 +1,3 @@
-#include <sample.hpp>
-
 #include <yasync.hpp>
 #include <http/rr.hpp>
 #include <util/interproc.hpp>
