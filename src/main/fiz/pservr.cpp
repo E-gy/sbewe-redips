@@ -6,10 +6,10 @@
 #include <string>
 #include <iostream>
 
+namespace redips::fiz {
+
 using namespace std::literals;
 using namespace magikop;
-
-namespace redips::fiz {
 
 template<typename LiSo> class P2VListener : public IListener {
 	public:

@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-using namespace magikop;
-
 namespace redips::virt {
+
+using namespace magikop;
 
 class R1oter : public IServer {
 	std::unordered_map<std::string, SServer> services;

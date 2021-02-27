@@ -4,9 +4,9 @@
 #include <fstream>
 #include <iostream>
 
-using namespace magikop;
-
 namespace redips::virt {
+
+using namespace magikop;
 
 StaticFileServer::StaticFileServer(std::string r, std::string d) : root(r), deff(d) {}
 
