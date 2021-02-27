@@ -6,7 +6,7 @@ namespace redips::virt {
 
 class IServer {
 	public:
-		virtual void take(redips::http::SharedRequest) = 0;
+		virtual void take(yasync::io::IOResource, redips::http::SharedRequest) = 0;
 };
 
 }
