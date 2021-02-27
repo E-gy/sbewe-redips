@@ -34,7 +34,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	auto listener = std::move(*lir1.ok());
 	auto lir2 = listener->listen(ar.ok());
 	if(auto err = lir2.err()) return *err;
-	return std::shared_ptr<IListener>(new P2VListener(listener, *lir2.ok()));
+	return std::shared_ptr<IListener>(new P2VListener<decltype(listener)>(listener, *lir2.ok()));
 }
 
 result<SListener, std::string> listenOn(yasync::io::IOYengine* e, const std::string& addr, unsigned port, virt::SServer vs){
