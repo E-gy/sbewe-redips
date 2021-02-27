@@ -87,6 +87,7 @@ int main(int argc, char* args[]){
 	}
 	std::cout << "slaying d~~a~~emons\n";
 	Daemons::waitForEveryoneToStop();
+	std::this_thread::sleep_for(std::chrono::milliseconds(5)); //HacKeRmANn
 	return 0;
 }
 
