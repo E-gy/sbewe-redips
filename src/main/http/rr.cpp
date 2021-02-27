@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <algorithm>
+#include <cstring>
 
 namespace redips::http {
 
