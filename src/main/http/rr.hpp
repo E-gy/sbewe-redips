@@ -66,6 +66,8 @@ struct Request : public RR {
 	Method method;
 	std::string path;
 	Request() = default;
+	Request(Method, std::string path);
+	template<typename T> Request(Method m, std::string path, const T& body) : Request(m, path) { setBody(body); }
 	static yasync::Future<result<SharedRequest, RRReadError>> read(yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
@@ -75,6 +77,8 @@ struct Request : public RR {
 struct Response : public RR {
 	Status status;
 	Response() = default;
+	Response(Status);
+	template<typename T> Response(Status s, const T& body) : Response(s) { setBody(body); }
 	static yasync::Future<result<SharedResponse, RRReadError>> read(yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;

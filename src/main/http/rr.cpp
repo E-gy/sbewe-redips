@@ -7,6 +7,9 @@
 
 namespace redips::http {
 
+Request::Request(Method m, std::string p) : method(m), path(p) {}
+Response::Response(Status s) : status(s) {}
+
 bool RR::hasHeader(const std::string& h){ return headers.count(h) > 0; }
 bool RR::hasHeader(Header h){ return hasHeader(headerGetStr(h)); }
 std::optional<std::string> RR::getHeader(const std::string& h){ return hasHeader(h) ? std::optional(headers[h]) : std::nullopt; }
