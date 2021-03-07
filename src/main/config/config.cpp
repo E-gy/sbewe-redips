@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <util/json.hpp>
 #include <util/ip.hpp>
+#include <util/filetype.hpp>
 
 using nlohmann::json;
 
@@ -34,6 +35,8 @@ void from_json(const json& j, VHost& vh){
 		SSL ssl;
 		j.at("ssl_cert").get_to(ssl.cert);
 		j.at("ssl_key").get_to(ssl.key);
+		if(getFileType(ssl.cert) != FileType::File) throw json::type_error::create(301, "Specified SSL cert file does not exist"); 
+		if(getFileType(ssl.key) != FileType::File) throw json::type_error::create(301, "Specified SSL key file does not exist"); 
 		vh.ssl = ssl;
 	}
 	if(j.contains("auth_basic") != j.contains("auth_basic_users")) throw json::type_error::create(301, "Incomplete Basic Auth config");
