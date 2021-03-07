@@ -4,6 +4,7 @@
 #include <config/config.hpp>
 #include <virt/r1ot.hpp>
 #include <virt/statfs.hpp>
+#include <virt/bauth.hpp>
 #include <fiz/pservr.hpp>
 
 #include <iostream>
@@ -58,7 +59,11 @@ int main(int argc, char* args[]){
 			// subject to changes!
 			//TODO cross-serve smh
 			std::map<std::pair<std::string, unsigned>, virt::R1otBuilder> terms;
-			for(auto vhost : config.vhosts) terms[{vhost.ip, vhost.port}].addService(vhost.serverName, virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html"))));
+			for(auto vhost : config.vhosts){
+				auto stack = virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html")));
+				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
+				terms[{vhost.ip, vhost.port}].addService(vhost.serverName, stack);
+			}
 			for(auto ent : terms){
 				if(!okay) break;
 				fiz::listenOn(&ioengine, ent.first.first, ent.first.second, ent.second.build()) >> ([&](fiz::SListener li){
