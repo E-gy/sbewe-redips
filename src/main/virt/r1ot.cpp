@@ -11,14 +11,9 @@ class R1oter : public IServer {
 	R1oter(std::unordered_map<std::string, SServer> && ss) : services(ss) {}
 	public:
 		friend class R1otBuilder;
-		void take(yasync::io::IOResource conn, redips::http::SharedRequest req) override {
-			if(auto host = req->getHeader(http::Header::Host)) if(services.count(*host) > 0) return services[*host]->take(conn, req);
-			http::Response resp;
-			resp.status = http::Status::NOT_FOUND;
-			resp.setBody("No such service available");
-			auto wr = conn->writer();
-			resp.write(wr);
-			conn->engine->engine <<= wr->eod() >> ([](){}|[](auto err){ std::cerr << "Error sending 'no host' response: " << err << "\n"; });
+		void take(yasync::io::IOResource conn, redips::http::SharedRequest req, RespBack respb) override {
+			if(auto host = req->getHeader(http::Header::Host)) if(services.count(*host) > 0) return services[*host]->take(conn, req, respb);
+			respb(http::Response(http::Status::NOT_FOUND, "No such service available"));
 		}
 };
 

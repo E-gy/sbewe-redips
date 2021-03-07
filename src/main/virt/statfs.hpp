@@ -11,7 +11,7 @@ class StaticFileServer : public IServer {
 	std::string deff;
 	public:
 		StaticFileServer(std::string root, std::string deff);
-		void take(yasync::io::IOResource, redips::http::SharedRequest) override;
+		void take(yasync::io::IOResource, redips::http::SharedRequest, RespBack) override;
 };
 
 }
