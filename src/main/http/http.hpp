@@ -143,7 +143,7 @@ inline constexpr const char* statusGetMessage(Status status){
 }
 
 enum class Header {
-	Host, ContentLength, Date, Connection
+	Host, ContentLength, Date, Connection, Authorization, Authenticate
 };
 
 inline constexpr const char* headerGetStr(Header h){
@@ -152,6 +152,8 @@ inline constexpr const char* headerGetStr(Header h){
 		case Header::ContentLength: return "Content-Length";
 		case Header::Date: return "Date";
 		case Header::Connection: return "Connection";
+		case Header::Authorization: return "Authorization";
+		case Header::Authenticate: return "WWW-Authenticate";
 		default: return "";
 	}
 }
