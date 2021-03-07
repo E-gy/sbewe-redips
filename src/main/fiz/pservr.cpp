@@ -28,7 +28,15 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
 	}, [=]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
-		conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){ vs->take(conn, reqwest); }|[](auto err){ std::cerr << "Read request error " << err.desc << "\n"; });
+		conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
+			vs->take(conn, reqwest, [=](auto resp){
+				auto wr = conn->writer();
+				resp.write(wr);
+				conn->engine->engine <<= wr->eod() >> ([](){}|[](auto err){
+					std::cerr << "Failed to respond: " << err << "\n";
+				});
+			});
+		}|[](auto err){ std::cerr << "Read request error " << err.desc << "\n"; });
 	});
 	if(auto err = lir1.err()) return *err;
 	auto listener = std::move(*lir1.ok());
