@@ -1,6 +1,6 @@
 #include "statfs.hpp"
 
-#include <sys/stat.h>
+#include <util/filetype.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -9,18 +9,6 @@ namespace redips::virt {
 using namespace magikop;
 
 StaticFileServer::StaticFileServer(std::string r, std::string d) : root(r), deff(d) {}
-
-constexpr auto FPATHSEP = '/';
-
-enum class FileType {
-	NE, Directory, File
-};
-
-FileType getFileType(const std::string& f){
-	struct ::stat finf;
-	if(::stat(f.c_str(), &finf) < 0) return FileType::NE;
-	return S_ISDIR(finf.st_mode) ? FileType::Directory : FileType::File;
-}
 
 void StaticFileServer::take(yasync::io::IOResource conn, redips::http::SharedRequest req, RespBack respb){
 	auto relp = root;
