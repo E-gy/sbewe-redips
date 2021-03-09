@@ -36,13 +36,7 @@ enum class Method {
 };
 
 inline bool methodIsSupported(Method m){
-	switch(m){
-		case Method::GET:
-		case Method::HEAD:
-		case Method::POST:
-			return true;
-		default: return false;
-	}
+	return m == Method::GET || m == Method::HEAD || m == Method::POST;
 }
 
 inline constexpr const char* methodGetStr(Method m){
