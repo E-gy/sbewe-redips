@@ -20,9 +20,9 @@ class R1oter : public IServer {
 		}
 };
 
-R1otBuilder& R1otBuilder::addService(const std::string& n, SServer s){
+R1otBuilder& R1otBuilder::addService(const std::string& n, SServer s, bool def){
 	services[n] = s;
-	return *this;
+	return def ? setDefaultService(s) : *this;
 }
 R1otBuilder& R1otBuilder::setDefaultService(SServer s){
 	defolt = s;

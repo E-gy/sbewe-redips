@@ -16,7 +16,7 @@ struct R1otBuilder {
 	 * Adds a service with specified name
 	 * @returns `this`
 	 */
-	R1otBuilder& addService(const std::string& name, SServer service);
+	R1otBuilder& addService(const std::string& name, SServer service, bool defolt = false);
 	/**
 	 * Sets given service as default
 	 */
