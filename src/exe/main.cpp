@@ -83,7 +83,8 @@ int main(int argc, char* args[]){
 				auto stack = virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html")));
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
 				auto fiz = &terms[{vhost.ip, vhost.port}];
-				for(auto h : genHostMappings(vhost)) fiz->addService(h, stack);
+				fiz->addService(vhost.serverName, stack);
+				for(auto h : genHostMappings(vhost)) fiz->addService2(h, stack);
 				if(vhost.isDefault) fiz->setDefaultService(stack);
 			}
 			for(auto ent : terms){

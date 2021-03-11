@@ -10,6 +10,7 @@ namespace redips::virt {
 
 struct R1otBuilder {
 	std::unordered_map<std::string, SServer> services;
+	std::unordered_map<std::string, SServer> services2;
 	std::optional<SServer> defolt;
 	R1otBuilder() = default;
 	/**
@@ -17,6 +18,7 @@ struct R1otBuilder {
 	 * @returns `this`
 	 */
 	R1otBuilder& addService(const std::string& name, SServer service);
+	R1otBuilder& addService2(const std::string&, SServer);
 	/**
 	 * Sets given service as default
 	 */
