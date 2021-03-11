@@ -11,6 +11,7 @@
 #include <map>
 #include <utility>
 #include <fstream>
+#include <unordered_set>
 
 namespace redips {
 
@@ -30,6 +31,25 @@ result<config::Config, std::string> parseArgs(int argc, char* args[], bool& dry)
 	std::ifstream cfgf(cfgfnam);
 	if(cfgf.fail()) return std::string("Couldn't read config file");
 	return config::parse(cfgf);
+}
+
+std::unordered_set<std::string> genHostMappings(const config::VHost& vh){
+	std::unordered_set<std::string> w;
+	w.insert(vh.serverName);
+	w.insert(vh.ip);
+	if(vh.ip == "localhost" || vh.ip == "0.0.0.0" || vh.ip == "127.0.0.1"){
+		w.insert("localhost");
+		w.insert("0.0.0.0");
+		w.insert("127.0.0.1");
+		//TODO moar wildcardz
+	}
+	auto port = std::to_string(vh.port);
+	std::unordered_set<std::string> m;
+	for(auto s : w){
+		m.insert(s);
+		m.insert(s + ":" + port);
+	}
+	return m;
 }
 
 int main(int argc, char* args[]){
@@ -62,7 +82,9 @@ int main(int argc, char* args[]){
 			for(auto vhost : config.vhosts){
 				auto stack = virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html")));
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
-				terms[{vhost.ip, vhost.port}].addService(vhost.serverName, stack);
+				auto fiz = terms[{vhost.ip, vhost.port}];
+				for(auto h : genHostMappings(vhost)) fiz.addService(h, stack);
+				if(vhost.isDefault) fiz.setDefaultService(stack);
 			}
 			for(auto ent : terms){
 				if(!okay) break;
