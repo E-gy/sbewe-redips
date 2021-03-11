@@ -20,6 +20,15 @@ std::string VHost::identk(){
 void to_json(json& j, const VHost& vh){
 	j = json{{"ip", vh.ip},{"port", vh.port},{"server_name", vh.serverName},{"root", vh.root}};
 	if(vh.defaultFile) j["default_file"] = vh.defaultFile.value();
+	if(vh.ssl){
+		j["ssl_cert"] = vh.ssl->cert;
+		j["ssl_key"] = vh.ssl->key;
+	}
+	if(vh.auth){
+		j["auth_basic"] = vh.auth->realm;
+		j["auth_basic_users"] = vh.auth->credentials;
+	}
+	if(vh.isDefault) j["default_vhost"] = true;
 }
 
 void from_json(const json& j, VHost& vh){
@@ -46,6 +55,7 @@ void from_json(const json& j, VHost& vh){
 		j.at("auth_basic_users").get_to(auth.credentials);
 		vh.auth = auth;
 	}
+	if(j.contains("default_vhost")) j.at("default_vhost").get_to(vh.isDefault);
 }
 
 void to_json(json& j, const Config& c){
