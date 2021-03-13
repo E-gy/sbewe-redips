@@ -10,9 +10,13 @@ using namespace magikop;
 class SSLResource : public IAIOResource {
 	IOResource raw;
 	SSL* ssl = nullptr;
+	/// When we read data from raw, we dump it here to make it accessible for subsequent SSL read
 	BIO* bioIn = nullptr;
+	/// When we need to write data, we SSL write it then yeet everything from here into raw
 	BIO* bioOut = nullptr;
+	/// Current read operation in progress
 	std::optional<Future<ReadResult>> rip = std::nullopt;
+	/// Current write operation in progress
 	std::optional<Future<WriteResult>> wip = std::nullopt;
 	std::array<char, 4096> buffer;
 	public:
@@ -43,6 +47,9 @@ class SSLResource : public IAIOResource {
 			BIO_read(bioOut, wrout.data(), pending);
 			return engine->engine <<= raw->write(wrout);
 		}
+		/**
+		 * When read query to raw completes, handles transferring the data through SSL
+		 */
 		template<typename R> std::variant<AFuture, movonly<R>> handleReadCompleted(bool& done){
 			if(!rip) return R::Err("Lol no");
 			auto rres = *((*rip)->result());
@@ -55,9 +62,13 @@ class SSLResource : public IAIOResource {
 			auto data = rres.ok();
 			size_t wr = 0;
 			while(wr < data->size()) wr += BIO_write(bioIn, data->data() + wr, data->size() - wr); //BIO to memory is sync duh, *and* always succeeds as long as there's memory available
-			return *(wip = yeetPending()); 
+			return justYeetAlready(); 
 			//TryResendBufferedData idk wut???
 		}
+		/// Yeets pending data, puts the future in wip and returns it 
+		inline auto justYeetAlready(){ return *(wip = yeetPending()); }
+		/// Queries raw to read next chunk, puts the future in rip and returns it
+		inline auto justReadAlready(){ return *(rip = engine->engine <<= raw->_read(1)); }
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
@@ -75,8 +86,8 @@ class SSLResource : public IAIOResource {
 						if(r <= 0){
 							auto err = SSL_get_error(ssl, r);
 							switch(err){
-								case SSL_ERROR_WANT_WRITE: return *(wip = yeetPending()); //SSL handshake in progress, wants to send data
-								case SSL_ERROR_WANT_READ: return *(rip = engine->engine <<= raw->_read(1)); //SSL handshake in progress, needs more data
+								case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
+								case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data
 								default:
 									done = true;
 									return retSSLError<ReadResult>("SSL read failed", err);
@@ -90,7 +101,7 @@ class SSLResource : public IAIOResource {
 					}
 				}
 				//Let's start by reading som bytes
-				return *(rip = engine->engine <<= raw->_read(1));
+				return justReadAlready();
 			}, std::vector<char>()));
 		}
 		Future<WriteResult> _write(std::vector<char>&& data) override {
@@ -115,15 +126,15 @@ class SSLResource : public IAIOResource {
 					if(w <= 0){
 						auto err = SSL_get_error(ssl, w);
 						switch(err){
-							case SSL_ERROR_WANT_WRITE: return *(wip = yeetPending()); //SSL handshake in progress, wants to send data
-							case SSL_ERROR_WANT_READ: return *(rip = engine->engine <<= raw->_read(1)); //SSL handshake in progress, needs more data 
+							case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
+							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data 
 							default:
 								done = true;
 								return retSSLError<WriteResult>("SSL read failed", err);
 						}
 					}
 					wrb.erase(wrb.begin(), wrb.begin()+w);
-					if(wrb.size() == 0) return *(wip = yeetPending()); //Written out all user data; yeet!
+					if(wrb.size() == 0) return justYeetAlready(); //Written out all user data; yeet!
 				}
 			}, data));
 		}
