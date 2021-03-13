@@ -6,6 +6,7 @@
 #include <virt/statfs.hpp>
 #include <virt/bauth.hpp>
 #include <fiz/pservr.hpp>
+#include <fiz/pservrs.hpp>
 #include <ossl/ssl.hpp>
 
 #include <iostream>
@@ -62,16 +63,18 @@ int main(int argc, char* args[]){
 			// subject to changes!
 			//TODO cross-serve smh
 			std::map<std::pair<std::string, unsigned>, virt::R1otBuilder> terms;
+			std::map<std::pair<std::string, unsigned>, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
 			for(auto vhost : config.vhosts){
 				auto stack = virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html")));
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
 				auto fiz = &terms[{vhost.ip, vhost.port}];
 				fiz->addService(vhost.tok(), stack);
 				if(vhost.isDefault) fiz->setDefaultService(stack);
+				if(auto ssl = vhost.ssl) yasync::io::ssl::createSSLContext(ssl->cert, ssl->key) >> ([&](auto sctx){ sslctx[{vhost.ip, vhost.port}].addHost(sctx, vhost.tok()); }|[&](auto err){ std::cerr << "Failed to initalize VHost ssl context: " << err << "\n"; });
 			}
 			for(auto ent : terms){
 				if(!okay) break;
-				fiz::listenOn(&ioengine, ent.first.first, ent.first.second, ent.second.build()) >> ([&](fiz::SListener li){
+				(sslctx.count(ent.first) > 0 ? fiz::listenOnSecure(&ioengine, ent.first.first, ent.first.second, sslctx[ent.first], ent.second.build()) : fiz::listenOn(&ioengine, ent.first.first, ent.first.second, ent.second.build())) >> ([&](fiz::SListener li){
 					lists->push_back(li);
 					dun->add(&engine, li->onShutdown());
 				}|[&](auto err){
