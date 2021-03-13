@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_compile_definitions("$<$<CONFIG:DEBUG>:_DEBUG>")
 
 find_package(Threads)
+find_package(OpenSSL)
 
 SET (CMAKE_ENABLE_EXPORTS TRUE)
 
@@ -31,7 +32,7 @@ target_compile_options(sbewe-redips-core PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
-target_link_libraries(sbewe-redips-core ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(sbewe-redips-core ${CMAKE_THREAD_LIBS_INIT} OpenSSL::SSL)
 
 add_library(sbewe-redips-core-cov STATIC ${src_main} $<TARGET_OBJECTS:yasync>)
 include_directories(sbewe-redips-core-cov ${PROJECT_SOURCE_DIR}/lib)
@@ -42,7 +43,7 @@ target_compile_options(sbewe-redips-core-cov PRIVATE
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -pedantic>
 )
 target_compile_options(sbewe-redips-core-cov PUBLIC --coverage)
-target_link_libraries(sbewe-redips-core-cov ${CMAKE_THREAD_LIBS_INIT} gcov)
+target_link_libraries(sbewe-redips-core-cov ${CMAKE_THREAD_LIBS_INIT} OpenSSL::SSL gcov)
 
 if(WIN32)
 	target_link_libraries(sbewe-redips-core ws2_32 "$<$<CONFIG:DEBUG>:dbghelp>")
