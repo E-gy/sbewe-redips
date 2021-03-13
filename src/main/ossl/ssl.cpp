@@ -39,6 +39,7 @@ SSLContext& SSLContext::operator=(SSLContext && o){
 	if(context) SSL_CTX_free(context);
 	context = o.context;
 	o.context = nullptr;
+	return *this;
 }
 
 result<SharedSSLContext, std::string> createSSLContext(const std::string& cert, const std::string& pk){

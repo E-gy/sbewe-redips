@@ -63,7 +63,7 @@ int main(int argc, char* args[]){
 	auto config = *par.ok();
 	if(dry || config.vhosts.empty()) return 0;
 	yasync::io::SystemNetworkingStateControl _sysnet;
-	ssl::SSLStateControl _ssl;
+	yasync::io::ssl::SSLStateControl _ssl;
 	{
 		yasync::Yengine engine(4);
 		auto timeToStahpRes = yasync::io::CtrlC::on(&engine);
