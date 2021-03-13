@@ -34,25 +34,6 @@ result<config::Config, std::string> parseArgs(int argc, char* args[], bool& dry)
 	return config::parse(cfgf);
 }
 
-std::unordered_set<std::string> genHostMappings(const config::VHost& vh){
-	std::unordered_set<std::string> w;
-	w.insert(vh.serverName);
-	w.insert(vh.ip);
-	if(vh.ip == "localhost" || vh.ip == "0.0.0.0" || vh.ip == "127.0.0.1"){
-		w.insert("localhost");
-		w.insert("0.0.0.0");
-		w.insert("127.0.0.1");
-		//TODO moar wildcardz
-	}
-	auto port = std::to_string(vh.port);
-	std::unordered_set<std::string> m;
-	for(auto s : w){
-		m.insert(s);
-		m.insert(s + ":" + port);
-	}
-	return m;
-}
-
 int main(int argc, char* args[]){
 	bool dry = false;
 	auto par = parseArgs(argc, args, dry);
@@ -85,8 +66,7 @@ int main(int argc, char* args[]){
 				auto stack = virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html")));
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
 				auto fiz = &terms[{vhost.ip, vhost.port}];
-				fiz->addService(vhost.serverName, stack);
-				for(auto h : genHostMappings(vhost)) fiz->addService2(h, stack);
+				fiz->addService(vhost.tok(), stack);
 				if(vhost.isDefault) fiz->setDefaultService(stack);
 			}
 			for(auto ent : terms){
