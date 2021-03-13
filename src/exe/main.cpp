@@ -6,6 +6,7 @@
 #include <virt/statfs.hpp>
 #include <virt/bauth.hpp>
 #include <fiz/pservr.hpp>
+#include <ossl/ssl.hpp>
 
 #include <iostream>
 #include <map>
@@ -62,6 +63,7 @@ int main(int argc, char* args[]){
 	auto config = *par.ok();
 	if(dry || config.vhosts.empty()) return 0;
 	yasync::io::SystemNetworkingStateControl _sysnet;
+	ssl::SSLStateControl _ssl;
 	{
 		yasync::Yengine engine(4);
 		auto timeToStahpRes = yasync::io::CtrlC::on(&engine);
