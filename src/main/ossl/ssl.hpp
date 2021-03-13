@@ -21,4 +21,20 @@ class SSLStateControl {
 		SSLStateControl(SSLStateControl&&) = delete;
 };
 
+class SSLContext {
+	SSL_CTX* context;
+	public:
+		SSLContext(SSL_CTX* ctx);
+		~SSLContext();
+		SSLContext(SSLContext &&);
+		SSLContext& operator=(SSLContext &&);
+		SSLContext(const SSLContext&) = delete;
+		SSLContext& operator=(const SSLContext&) = delete;
+		inline SSL_CTX* ctx() const { return context; }
+};
+
+using SharedSSLContext = std::shared_ptr<SSLContext>;
+
+result<SharedSSLContext, std::string> createSSLContext(const std::string& cert, const std::string& pk);
+
 }
