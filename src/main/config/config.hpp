@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <util/result.hpp>
+#include <util/hostresolv.hpp>
 
 namespace redips::config {
 
@@ -28,6 +29,7 @@ struct VHost {
 	bool isDefault = false;
 	VHost() = default;
 	std::string identk();
+	HostK tok();
 };
 
 struct Config {

@@ -17,6 +17,10 @@ std::string VHost::identk(){
 	return k.str();
 }
 
+HostK VHost::tok(){
+	return HostK{ serverName, ip, port };
+}
+
 void to_json(json& j, const VHost& vh){
 	j = json{{"ip", vh.ip},{"port", vh.port},{"server_name", vh.serverName},{"root", vh.root}};
 	if(vh.defaultFile) j["default_file"] = vh.defaultFile.value();
