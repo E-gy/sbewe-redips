@@ -26,14 +26,14 @@ template<typename T> class HostMapper {
 			return *this;
 		}
 		HostMapper& addHost(T host, const HostK& k){
-			return addHost(host, k.name, k.port, k.addr);
+			return addHost(host, k.name, k.addr, k.port);
 		}
 		std::optional<T> resolvePrimary(const std::string& q) const {
-			return primary.count(q) > 0 ? primary[q] : std::nullopt;
+			return primary.count(q) > 0 ? std::optional<T>(primary.at(q)) : std::nullopt;
 		}
 		std::optional<T> resolve(const std::string& q) const {
 			if(auto prim = resolvePrimary(q)) return prim;
-			if(secondary.count(q) > 0) return secondary[q];
+			if(secondary.count(q) > 0) return std::optional<T>(secondary.at(q));
 			return std::nullopt;
 		}
 		std::optional<T> operator[](const std::string& q) const { return resolve(q); }

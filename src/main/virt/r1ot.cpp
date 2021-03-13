@@ -9,7 +9,7 @@ using namespace magikop;
 class R1oter : public IServer {
 	HostMapper<SServer> services;
 	std::optional<SServer> defolt;
-	R1oter(HostMapper<SServer> && s, std::optional<SServer> && d) : services(h), defolt(d) {}
+	R1oter(HostMapper<SServer> && s, std::optional<SServer> && d) : services(s), defolt(d) {}
 	public:
 		friend class R1otBuilder;
 		void take(yasync::io::IOResource conn, redips::http::SharedRequest req, RespBack respb) override {
