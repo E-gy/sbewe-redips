@@ -3,22 +3,21 @@
 #include <string>
 #include <unordered_map>
 #include <optional>
+#include <util/hostresolv.hpp>
 
 #include "vservr.hpp"
 
 namespace redips::virt {
 
 struct R1otBuilder {
-	std::unordered_map<std::string, SServer> services;
-	std::unordered_map<std::string, SServer> services2;
+	HostMapper<SServer> services;
 	std::optional<SServer> defolt;
 	R1otBuilder() = default;
 	/**
-	 * Adds a service with specified name
+	 * Adds a service with specified keying
 	 * @returns `this`
 	 */
-	R1otBuilder& addService(const std::string& name, SServer service);
-	R1otBuilder& addService2(const std::string&, SServer);
+	R1otBuilder& addService(const HostK& key, SServer service);
 	/**
 	 * Sets given service as default
 	 */
