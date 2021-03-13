@@ -130,7 +130,7 @@ class SSLResource : public IAIOResource {
 							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data 
 							default:
 								done = true;
-								return retSSLError<WriteResult>("SSL read failed", err);
+								return retSSLError<WriteResult>("SSL write failed", err);
 						}
 					}
 					wrb.erase(wrb.begin(), wrb.begin()+w);
