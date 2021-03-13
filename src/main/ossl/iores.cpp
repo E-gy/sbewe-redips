@@ -141,12 +141,15 @@ class SSLResource : public IAIOResource {
 		void notify([[maybe_unused]] IOCompletionInfo inf) override {} //No-Op because we're a proxy :D
 };
 
-result<IOResource, std::string> openSSLIO(IOResource raw, const SSLContext& ctx){
-	auto ssl = SSL_new(ctx.ctx());
-	if(!ssl) return retSSLError<result<IOResource, std::string>>("SSL instantiation from context failed");
+result<IOResource, std::string> openSSLIO(IOResource raw, SSL* ssl){
 	auto sslres = std::make_shared<SSLResource>(raw, ssl);
 	if(auto err = sslres->initBIO().err()) return result<IOResource, std::string>::Err(*err);
 	return result<IOResource, std::string>::Ok(sslres);
+}
+result<IOResource, std::string> openSSLIO(IOResource raw, const SSLContext& ctx){
+	auto ssl = SSL_new(ctx.ctx());
+	if(!ssl) return retSSLError<result<IOResource, std::string>>("SSL instantiation from context failed");
+	return openSSLIO(raw, ssl);
 }
 
 }
