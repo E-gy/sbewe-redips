@@ -42,9 +42,15 @@ SSLContext& SSLContext::operator=(SSLContext && o){
 	return *this;
 }
 
-result<SharedSSLContext, std::string> createSSLContext(const std::string& cert, const std::string& pk){
+result<SharedSSLContext, std::string> createSSLContext(){
 	SSL_CTX* ctx = SSL_CTX_new(TLS_method());
 	if(!ctx) return retSSLError<result<SharedSSLContext, std::string>>("Failed to create TLS negotiations context");
+	return SharedSSLContext(new SSLContext(ctx));
+}
+
+result<SharedSSLContext, std::string> createSSLContext(const std::string& cert, const std::string& pk){
+	SSL_CTX* ctx = SSL_CTX_new(TLS_method());
+	if(!ctx) return retSSLError<result<SharedSSLContext, std::string>>("Failed to create TLS sec comms context");
 	SharedSSLContext sctx(new SSLContext(ctx));
 	if(SSL_CTX_use_certificate_chain_file(ctx, cert.c_str()) != 1) return retSSLError<result<SharedSSLContext, std::string>>("Failed to load certificate from file");
 	if(SSL_CTX_use_PrivateKey_file(ctx, pk.c_str(), SSL_FILETYPE_PEM) != 1) return retSSLError<result<SharedSSLContext, std::string>>("Failed to load pk from file");

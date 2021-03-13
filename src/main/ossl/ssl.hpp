@@ -35,6 +35,13 @@ class SSLContext {
 
 using SharedSSLContext = std::shared_ptr<SSLContext>;
 
+/**
+ * Creates plain SSL context
+ */
+result<SharedSSLContext, std::string> createSSLContext();
+/**
+ * Creates SSL context with specified certificate and pk
+ */
 result<SharedSSLContext, std::string> createSSLContext(const std::string& cert, const std::string& pk);
 
 }
