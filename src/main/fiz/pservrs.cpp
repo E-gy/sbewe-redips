@@ -32,10 +32,12 @@ class P2VLSNIHandler {
 		P2VLSNIHandler(const HostMapper<SharedSSLContext>& hm) : hmap(hm) {}
 		int handleSNI(SSL* ssl, [[maybe_unused]] int* al){
 			auto snam = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+			std::cout << "SNI Host: " << (snam ? snam : "[null]") << " \n";
 			if(snam) if(auto host = hmap.resolve(snam)){
 				SSL_set_SSL_CTX(ssl, (*host)->ctx());
 				return SSL_TLSEXT_ERR_OK;
 			}
+			std::cout << "SNI Host not found :(\n";
 			return SSL_TLSEXT_ERR_NOACK; //TODO
 		}
 };
@@ -65,6 +67,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		openSSLIO(conn, ssl) >> ([vs, ssl](auto conn){
 			SSL_set_accept_state(ssl);
 			conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
+				std::cout << "reqwest!\n";
 				vs->take(conn, reqwest, [=](auto resp){
 					auto wr = conn->writer();
 					resp.write(wr);
