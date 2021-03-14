@@ -58,7 +58,11 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		return false;
 	}, [acctx, vs]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
 		auto ssl = SSL_new(acctx->ctx());
-		if(ssl) openSSLIO(conn, ssl) >> ([vs](auto conn){
+		if(!ssl){
+			std::cerr << "Failed to instantiate SSL\n";
+			return;
+		}
+		openSSLIO(conn, ssl) >> ([vs](auto conn){
 			conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
 				vs->take(conn, reqwest, [=](auto resp){
 					auto wr = conn->writer();
@@ -69,7 +73,6 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 				});
 			}|[](auto err){ std::cerr << "Read request error " << err.desc << "\n"; });
 		}|[](auto err){ std::cerr << "Connection convert to SSL error " << err << "\n"; });
-		else std::cerr << "Failed to instantiate SSL\n";
 	});
 	if(auto err = lir1.err()) return *err;
 	auto listener = std::move(*lir1.ok());
