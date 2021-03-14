@@ -82,6 +82,10 @@ class SSLResource : public IAIOResource {
 			wrout.resize(pending);
 			auto mvd = BIO_read(bioOut, wrout.data(), pending);
 			std::cout << "querying yeet " << pending << " (" << mvd << ") bytes\n";
+			if(pending == 7){
+				for(unsigned i = 0; i < pending; i++) std::cout << (unsigned)wrout[i] << " ";
+				std::cout << "\n";
+			}
 			return engine->engine <<= raw->write(wrout);
 		}
 		/**
@@ -150,6 +154,9 @@ class SSLResource : public IAIOResource {
 					std::cout << "yeet completed\n";
 				}
 				std::cout << "checking black box...\n";
+				std::cout << "Out pending: " << BIO_ctrl_pending(bioOut) << "\n";
+				std::cout << "In write guarantee: " << BIO_ctrl_get_write_guarantee(bioOut) << "\n";
+				std::cout << "In read request: " << BIO_ctrl_get_read_request(bioOut) << "\n";
 				if(sslWantsToSend()) return justYeetAlready();
 				if(forceSSLRead || SSL_has_pending(ssl)){
 					std::cout << "attempting SSL read\n";
