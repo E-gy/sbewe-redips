@@ -174,7 +174,7 @@ class SSLResource : public IAIOResource {
 							}
 						}
 						resd.insert(resd.end(), buffer.begin(), buffer.begin() + r);
-						if(bytes > 0 && resd.size() > bytes){ //FIXME What if bytes is 0? How does SSL detect EOT?
+						if(bytes > 0 && resd.size() > bytes){
 							done = true;
 							return ReadResult::Ok(resd);
 						}
