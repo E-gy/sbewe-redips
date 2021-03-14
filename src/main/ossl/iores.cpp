@@ -1,6 +1,7 @@
 #include "iores.hpp"
 
 #include <array>
+#include <iostream>
 
 namespace yasync::io::ssl {
 
@@ -14,6 +15,8 @@ class SSLResource : public IAIOResource {
 	BIO* bioIn = nullptr;
 	/// When we need to write data, we SSL write it then yeet everything from here into raw
 	BIO* bioOut = nullptr;
+	/// whether SNI has occured
+	bool inictx = false;
 	/// Current read operation in progress
 	std::optional<Future<ReadResult>> rip = std::nullopt;
 	/// Current write operation in progress
@@ -36,43 +39,87 @@ class SSLResource : public IAIOResource {
 			return result<void, std::string>::Ok();
 		}
 		/**
+		 * Whether, and how much, data SSL wants to send
+		 */
+		size_t sslWantsToSend(){
+			return BIO_ctrl_pending(bioOut);
+		}
+		/**
+		 * Whether, and how much, data SSL made ready for consumption
+		 */
+		size_t sslMadeDataReady(){
+			return SSL_pending(ssl);
+		}
+		/**
 		 * Yeets everything in out BIO into raw.
 		 * Returns future that completes when everything got yeeted
 		 */
 		Future<WriteResult> yeetPending(){
-			auto pending = BIO_ctrl_pending(bioOut);
-			if(!pending) return completed(WriteResult::Ok());
+			auto pending = sslWantsToSend();
+			if(!pending){
+				std::cout << "nothing to yeet\n";
+				return completed(WriteResult::Ok());
+			}
 			std::vector<char> wrout;
-			wrout.reserve(pending);
-			BIO_read(bioOut, wrout.data(), pending);
+			wrout.resize(pending);
+			auto mvd = BIO_read(bioOut, wrout.data(), pending);
+			std::cout << "querying yeet " << pending << " (" << mvd << ") bytes\n";
 			return engine->engine <<= raw->write(wrout);
 		}
 		/**
 		 * When read query to raw completes, handles transferring the data through SSL
+		 * @returns whether EOT is reached
 		 */
-		template<typename R> std::variant<AFuture, movonly<R>> handleReadCompleted(bool& done){
-			if(!rip) return R::Err("Lol no");
+		result<bool, std::string> handleReadCompleted(){
+			if(!rip) return result<bool, std::string>::Err("Lol no");
 			auto rres = *((*rip)->result());
 			rip = std::nullopt;
-			if(auto err = rres.err()){
-				done = true;
-				return R::Err(*err);
-			}
+			if(auto err = rres.err()) return result<bool, std::string>::Err(*err);
 			//Transfer available data to SSL
-			auto data = rres.ok();
-			size_t wr = 0;
-			while(wr < data->size()) wr += BIO_write(bioIn, data->data() + wr, data->size() - wr); //BIO to memory is sync duh, *and* always succeeds as long as there's memory available
-			return justYeetAlready(); 
+			while(true){
+				auto data = rres.ok();
+				std::cout << "received " << data->size() << " bytes\n";
+				if(data->size() == 0) return result<bool, std::string>::Ok(true); 
+				size_t wr = 0;
+				while(wr < data->size()) wr += BIO_write(bioIn, data->data() + wr, data->size() - wr); //BIO to memory is sync duh, *and* always succeeds as long as there's memory available
+				if(!inictx){ //SNI has yet to switch context. Retain initial hadshake data. Query read; resubmit
+					inictx = true;
+					auto r = SSL_read(ssl, buffer.data(), buffer.size());
+					if(r <= 0){
+						auto err = SSL_get_error(ssl, r);
+						if(err == SSL_ERROR_WANT_READ){
+							continue;
+						} else std::cout << printSSLError("Yeah, no ") << "\n";
+					} else std::cout << "ughm, wut?\n"; //well that is unexpected. uhh wtf?
+				}
+				break;
+			}
+			return result<bool, std::string>::Ok(false);
 			//TryResendBufferedData idk wut???
 		}
 		/// Yeets pending data, puts the future in wip and returns it 
 		inline auto justYeetAlready(){ return *(wip = yeetPending()); }
 		/// Queries raw to read next chunk, puts the future in rip and returns it
-		inline auto justReadAlready(){ return *(rip = engine->engine <<= raw->_read(1)); }
+		inline auto justReadAlready(){
+			std::cout << "querying read\n";
+			return *(rip = engine->engine <<= raw->_read(1));
+		}
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
-				if(rip) return handleReadCompleted<ReadResult>(done);
+				if(rip){
+					auto rres = handleReadCompleted();
+					if(auto err = rres.err()){
+						done = true;
+						return ReadResult::Err(*err);
+					}
+					if(*rres.ok()){
+						done = true;
+						std::cout << "reached EOF\n";
+						return ReadResult::Ok(resd);
+					}
+					std::cout << "read completed\n";
+				}
 				if(wip){
 					auto rres = *((*wip)->result());
 					wip = std::nullopt;
@@ -80,14 +127,24 @@ class SSLResource : public IAIOResource {
 						done = true;
 						return ReadResult::Err(*err);
 					}
-					//Each BIO write is followed by SSL read (eventually)
+					std::cout << "yeet completed\n";
+				}
+				std::cout << "checking black box...\n";
+				if(sslWantsToSend()) return justYeetAlready();
+				if(sslMadeDataReady()){
+					std::cout << "attempting SSL read\n";
 					while(true){
 						auto r = SSL_read(ssl, buffer.data(), buffer.size());
+						std::cout << r << "\n";
 						if(r <= 0){
 							auto err = SSL_get_error(ssl, r);
+							std::cout << err << "\n";
 							switch(err){
 								case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
 								case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data
+								case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
+									done = true;
+									return retSSLError<ReadResult>("Fatal SSL error :/");
 								default:
 									done = true;
 									return retSSLError<ReadResult>("SSL read failed", err);
@@ -100,26 +157,37 @@ class SSLResource : public IAIOResource {
 						}
 					}
 				}
-				//Let's start by reading som bytes
+				//Default to having to read more
 				return justReadAlready();
 			}, std::vector<char>()));
 		}
 		Future<WriteResult> _write(std::vector<char>&& data) override {
 			return defer(lambdagen([this, self = slf.lock()]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& wrb) -> std::variant<AFuture, movonly<WriteResult>> {
 				if(done) return WriteResult::Ok();
-				if(rip) return handleReadCompleted<WriteResult>(done);
+				if(rip){
+					auto rres = handleReadCompleted();
+					if(auto err = rres.err()){
+						done = true;
+						return WriteResult::Err(*err);
+					}
+					if(*rres.ok()){
+						done = true;
+						std::cout << "reached EOF\n";
+						return WriteResult::Err("Reached EOT when querying handshake data");
+					}
+					std::cout << "read completed\n";
+				}
 				if(wip){
 					auto rres = *((*wip)->result());
 					wip = std::nullopt;
-					if(rres.isErr()){
+					if(auto err = rres.err()){
 						done = true;
-						return rres;
+						return WriteResult::Err(*err);
 					}
-					if(wrb.size() == 0){ //Last write successfully flushed everything
-						done = true;
-						return WriteResult::Ok();
-					}
+					std::cout << "yeet completed\n";
 				}
+				std::cout << "checking black box...\n";
+				if(sslWantsToSend()) return justYeetAlready();
 				//Let's yeet some data
 				while(true){
 					auto w = SSL_write(ssl, wrb.data(), wrb.size());
