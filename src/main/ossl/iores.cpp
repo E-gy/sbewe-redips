@@ -140,9 +140,13 @@ class SSLResource : public IAIOResource {
 				std::cout << "Out pending: " << BIO_ctrl_pending(bioOut) << "\n";
 				std::cout << "In write guarantee: " << BIO_ctrl_get_write_guarantee(bioOut) << "\n";
 				std::cout << "In read request: " << BIO_ctrl_get_read_request(bioOut) << "\n";
-				auto st = SSL_get_state(ssl);
-				std::cout << "Black box state: " << st << "\n";
+				std::cout << "Black box state: " << SSL_get_state(ssl) << "\n";
+				std::cout << "Black box is pre: " << SSL_in_before(ssl) << "\n";
+				std::cout << "Black box is init: " << SSL_in_init(ssl) << "\n";
+				std::cout << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
+				if(SSL_in_before(ssl)) return justReadAlready(); //Trigger initial read
 				if(sslWantsToSend()) return justYeetAlready();
+				if(SSL_in_init(ssl)) return justReadAlready();
 				if(SSL_is_init_finished(ssl)){
 					std::cout << "attempting SSL read\n";
 					while(true){
@@ -176,8 +180,9 @@ class SSLResource : public IAIOResource {
 						}
 					}
 				}
-				//Default to having to read more
-				return justReadAlready();
+				//Uh oh, how did we get here?
+				done = true;
+				return ReadResult::Err("Reached undetermined read state");
 			}, std::vector<char>()));
 		}
 		Future<WriteResult> _write(std::vector<char>&& data) override {
