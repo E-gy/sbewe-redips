@@ -3,6 +3,7 @@
 #include <array>
 #include <iostream>
 #include <openssl/err.h>
+#include <thread>
 
 namespace yasync::io::ssl {
 
@@ -112,6 +113,7 @@ class SSLResource : public IAIOResource {
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
+				std::cout << "-- On " << std::this_thread::get_id() << "\n";
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
