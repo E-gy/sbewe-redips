@@ -26,35 +26,17 @@ class SSLResource : public IAIOResource {
 	public:
 		SSLResource(IOResource r, SSL* s) : IAIOResource(r->engine), raw(r), ssl(s) {}
 		~SSLResource(){
-			if(bioIn) BIO_free(bioIn);
-			if(bioOut) BIO_free(bioOut);
-			if(ssl){ //~~SSL_set0_*bio transfers ownership and the SSL object frees them using BIO_free_all on free~~
+			if(ssl){ //SSL_set0_*bio transfers ownership and the SSL object frees them using BIO_free_all on free
 				SSL_shutdown(ssl);
 				SSL_free(ssl);
 			}
 		}
 		result<void, std::string> initBIO(){
 			if(!ssl) return retSSLError<result<void, std::string>>("SSL resource in errored state");
-			/// 0→1;2→3
-			BIO* bios[4] = {};
-			const size_t bus = buffer.size();
-			if(BIO_new_bio_pair(&bios[0], bus, &bios[1], bus) != 1 || BIO_new_bio_pair(&bios[2], bus, &bios[3], bus) != 1){
-				for(unsigned j = 0; j < 4; j++) if(bios[j] != nullptr) BIO_free(bios[j]);
-				return retSSLError<result<void, std::string>>("BIO pairs construction failed");
-			}
-			/*BIO* bios[4] = {BIO_new(BIO_s_mem()), BIO_new(BIO_s_mem()), BIO_new(BIO_s_mem()), BIO_new(BIO_s_mem())};
-			for(unsigned i = 0; i < 4; i++) if(bios[i] == nullptr){
-				for(unsigned j = 0; j < 4; j++) if(bios[j] != nullptr) BIO_free(bios[j]);
-				return retSSLError<result<void, std::string>>("BIOs construction failed");
-			}
-			if(BIO_make_bio_pair(bios[0], bios[1]) != 1 || BIO_make_bio_pair(bios[2], bios[3]) != 1){
-				for(unsigned j = 0; j < 4; j++) BIO_free(bios[j]);
-				return retSSLError<result<void, std::string>>("BIOs pairing failed");
-			}*/
-			bioIn = bios[0];
-			SSL_set0_rbio(ssl, bios[1]);
-			SSL_set0_wbio(ssl, bios[2]);
-			bioOut = bios[3];
+			if(!(bioIn = BIO_new(BIO_s_mem()))) return retSSLError<result<void, std::string>>("BIO in construction failed");
+			if(!(bioOut = BIO_new(BIO_s_mem()))) return retSSLError<result<void, std::string>>("BIO in construction failed");
+			SSL_set0_rbio(ssl, bioIn);
+			SSL_set0_wbio(ssl, bioOut);
 			return result<void, std::string>::Ok();
 		}
 		/**
