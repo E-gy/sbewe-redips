@@ -62,8 +62,8 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 			std::cerr << "Failed to instantiate SSL\n";
 			return;
 		}
-		SSL_set_accept_state(ssl);
-		openSSLIO(conn, ssl) >> ([vs](auto conn){
+		openSSLIO(conn, ssl) >> ([vs, ssl](auto conn){
+			SSL_set_accept_state(ssl);
 			conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
 				vs->take(conn, reqwest, [=](auto resp){
 					auto wr = conn->writer();
