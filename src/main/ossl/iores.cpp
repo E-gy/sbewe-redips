@@ -211,7 +211,8 @@ class SSLResource : public IAIOResource {
 
 result<IOResource, std::string> openSSLIO(IOResource raw, SSL* ssl){
 	auto sslres = std::make_shared<SSLResource>(raw, ssl);
-	if(auto err = sslres->initBIO().err()) return result<IOResource, std::string>::Err(*err);
+	auto bres = sslres->initBIO();
+	if(auto err = bres.err()) return result<IOResource, std::string>::Err(*err);
 	return result<IOResource, std::string>::Ok(sslres);
 }
 result<IOResource, std::string> openSSLIO(IOResource raw, const SSLContext& ctx){
