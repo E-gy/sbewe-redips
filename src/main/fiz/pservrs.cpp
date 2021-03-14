@@ -13,11 +13,14 @@ using namespace std::literals;
 using namespace magikop;
 using namespace yasync::io::ssl;
 
+class P2VLSNIHandler;
 template<typename LiSo> class P2VListener : public IListener {
 	public:
 		LiSo liso;
 		yasync::Future<void> liend;
-		P2VListener(LiSo s, yasync::Future<void> e) : liso(s), liend(e) {}
+		SharedSSLContext acctxt; //captured to last for as long as the listener lasts
+		std::shared_ptr<P2VLSNIHandler> sniha;
+		P2VListener(LiSo s, yasync::Future<void> e, SharedSSLContext acc, std::shared_ptr<P2VLSNIHandler> sni) : liso(s), liend(e), acctxt(acc), sniha(sni) {}
 		~P2VListener() = default;
 		yasync::Future<void> onShutdown() override { return liend; };
 		void shutdown() override { liso->shutdown(); }
@@ -53,7 +56,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, []([[maybe_unused]] auto _, yasync::io::sysneterr_t err, const std::string& location){
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
-	}, [acctx, vs, sniha]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
+	}, [acctx, vs]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
 		auto ssl = SSL_new(acctx->ctx());
 		if(ssl) openSSLIO(conn, ssl) >> ([vs](auto conn){
 			conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
@@ -72,7 +75,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	auto listener = std::move(*lir1.ok());
 	auto lir2 = listener->listen(ar.ok());
 	if(auto err = lir2.err()) return *err;
-	return std::shared_ptr<IListener>(new P2VListener<decltype(listener)>(listener, *lir2.ok()));
+	return std::shared_ptr<IListener>(new P2VListener<decltype(listener)>(listener, *lir2.ok(), acctx, sniha));
 }
 
 result<SListener, std::string> listenOnSecure(yasync::io::IOYengine* e, const std::string& addr, unsigned port, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
