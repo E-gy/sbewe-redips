@@ -125,6 +125,7 @@ class SSLResource : public IAIOResource {
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
+				bool forceSSLRead = false;
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
@@ -137,6 +138,7 @@ class SSLResource : public IAIOResource {
 						return ReadResult::Ok(resd);
 					}
 					std::cout << "read completed\n";
+					forceSSLRead = true;
 				}
 				if(wip){
 					auto rres = *((*wip)->result());
@@ -149,7 +151,7 @@ class SSLResource : public IAIOResource {
 				}
 				std::cout << "checking black box...\n";
 				if(sslWantsToSend()) return justYeetAlready();
-				if(sslMadeDataReady()){
+				if(forceSSLRead || SSL_has_pending(ssl)){
 					std::cout << "attempting SSL read\n";
 					while(true){
 						auto r = SSL_read(ssl, buffer.data(), buffer.size());
