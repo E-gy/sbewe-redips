@@ -2,6 +2,7 @@
 
 #include <array>
 #include <iostream>
+#include <openssl/err.h>
 
 namespace yasync::io::ssl {
 
@@ -161,11 +162,13 @@ class SSLResource : public IAIOResource {
 				if(forceSSLRead || SSL_has_pending(ssl)){
 					std::cout << "attempting SSL read\n";
 					while(true){
+						ERR_clear_error();
 						auto r = SSL_read(ssl, buffer.data(), buffer.size());
 						std::cout << r << "\n";
 						if(r <= 0){
 							auto err = SSL_get_error(ssl, r);
 							std::cout << err << "\n";
+							if(sslWantsToSend()) err = SSL_ERROR_WANT_WRITE;
 							switch(err){
 								case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
 								case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data
