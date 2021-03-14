@@ -112,7 +112,6 @@ class SSLResource : public IAIOResource {
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
-				bool forceSSLRead = false;
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
@@ -125,7 +124,6 @@ class SSLResource : public IAIOResource {
 						return ReadResult::Ok(resd);
 					}
 					std::cout << "read completed\n";
-					forceSSLRead = true;
 				}
 				if(wip){
 					auto rres = *((*wip)->result());
@@ -140,8 +138,10 @@ class SSLResource : public IAIOResource {
 				std::cout << "Out pending: " << BIO_ctrl_pending(bioOut) << "\n";
 				std::cout << "In write guarantee: " << BIO_ctrl_get_write_guarantee(bioOut) << "\n";
 				std::cout << "In read request: " << BIO_ctrl_get_read_request(bioOut) << "\n";
+				auto st = SSL_get_state(ssl);
+				std::cout << "Black box state: " << st << "\n";
 				if(sslWantsToSend()) return justYeetAlready();
-				if(forceSSLRead || SSL_has_pending(ssl)){
+				if(SSL_is_init_finished(ssl)){
 					std::cout << "attempting SSL read\n";
 					while(true){
 						ERR_clear_error();
@@ -157,6 +157,11 @@ class SSLResource : public IAIOResource {
 								case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
 									done = true;
 									return retSSLError<ReadResult>("Fatal SSL error :/");
+								case SSL_ERROR_SYSCALL:{ //Some non-recoverable, fatal I/O error occurred. The OpenSSL error queue may contain more information on the error.
+									done = true;
+									auto nerr = ERR_get_error();
+									return retSSLError<ReadResult>("Fatal SSL I/O error :/", nerr ? nerr : err); //may lol
+								}
 								default:
 									done = true;
 									return retSSLError<ReadResult>("SSL read failed", err);
