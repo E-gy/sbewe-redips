@@ -89,7 +89,7 @@ class SSLResource : public IAIOResource {
 				if(data->size() == 0) return result<bool, std::string>::Ok(true); 
 				size_t wr = 0;
 				while(wr < data->size()) wr += BIO_write(bioIn, data->data() + wr, data->size() - wr); //BIO to memory is sync duh, *and* always succeeds as long as there's memory available
-				if(!inictx){ //SNI has yet to switch context. Retain initial hadshake data. Query read; resubmit
+				/*if(!inictx){ //SNI has yet to switch context. Retain initial hadshake data. Query read; resubmit
 					inictx = true;
 					auto r = SSL_read(ssl, buffer.data(), buffer.size());
 					if(r <= 0){
@@ -98,7 +98,7 @@ class SSLResource : public IAIOResource {
 							continue;
 						} else hedlog('C') << printSSLError("Yeah, no ") << "\n";
 					} else hedlog('C') << "ughm, wut?\n"; //well that is unexpected. uhh wtf?
-				}
+				}*/
 				break;
 			}
 			return result<bool, std::string>::Ok(false);
