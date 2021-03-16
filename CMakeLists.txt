@@ -7,7 +7,10 @@ project(sbewe-redips-core VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 add_compile_definitions("$<$<CONFIG:DEBUG>:_DEBUG>")
 
-Include(CodeCoverage)
+find_program( LCOV_PATH  NAMES lcov lcov.bat lcov.exe lcov.perl)
+if(LCOV_PATH)
+	Include(CodeCoverage)
+endif()
 
 find_package(Threads)
 find_package(OpenSSL)
@@ -101,11 +104,14 @@ include_directories(sbewe-redips-tests ${PROJECT_SOURCE_DIR}/lib)
 include_directories(sbewe-redips-tests ${PROJECT_SOURCE_DIR}/src/main)
 include_directories(sbewe-redips-tests ${PROJECT_SOURCE_DIR}/src/test)
 target_link_libraries(sbewe-redips-tests sbewe-redips-core-cov)
-setup_target_for_coverage_lcov(
-	NAME sbewe-redips-tests-cov
-	EXECUTABLE sbewe-redips-tests
-	BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src"
-)
+if(LCOV_PATH)
+	setup_target_for_coverage_lcov(
+		NAME sbewe-redips-tests-cov
+		EXECUTABLE sbewe-redips-tests
+		BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src"
+		EXCLUDE "lib/*"
+	)
+endif()
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
 include(CTest)
