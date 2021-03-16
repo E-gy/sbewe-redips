@@ -42,7 +42,7 @@ jobs:
       if: ${{ always() && steps.testcov.outcome == 'success' }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: lcov -e sbewe-redips-tests-cov.info "${{runner.workspace}}/src/yasync/*" -e sbewe-redips-tests-cov.info "${{runner.workspace}}/src/main/*" -o sbewe-redips-tests-cov.info
+      run: lcov -e sbewe-redips-tests-cov.info "$GITHUB_WORKSPACE/src/yasync/*" -e sbewe-redips-tests-cov.info "$GITHUB_WORKSPACE/src/main/*" -o sbewe-redips-tests-cov.info
     - name: Publish coverage to Coveralls
       if: ${{ always() && steps.testcov.outcome == 'success' }}
       uses: coverallsapp/github-action@master
