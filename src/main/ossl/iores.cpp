@@ -109,10 +109,11 @@ class SSLResource : public IAIOResource {
 					auto r = SSL_read(ssl, buffer.data(), buffer.size());
 					if(r <= 0){
 						auto err = SSL_get_error(ssl, r);
-						if(sslWantsToSend()) err = SSL_ERROR_WANT_WRITE;
 						switch(err){
-							case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
-							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data
+							case SSL_ERROR_WANT_WRITE: //In case you're wondering, either of the 2 error codes can indicate either wish by SSL
+							case SSL_ERROR_WANT_READ:
+								if(sslWantsToSend()) return justYeetAlready(); //SSL handshake in progress, wants to send data
+								else return justReadAlready(); //SSL handshake in progress, needs more data
 							case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
 								done = true;
 								return retSSLError<ReadResult>("Fatal SSL error :/");
@@ -170,8 +171,10 @@ class SSLResource : public IAIOResource {
 					if(w <= 0){
 						auto err = SSL_get_error(ssl, w);
 						switch(err){
-							case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
-							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data 
+							case SSL_ERROR_WANT_WRITE: //In case you're wondering, either of the 2 error codes can indicate either wish by SSL
+							case SSL_ERROR_WANT_READ:
+								if(sslWantsToSend()) return justYeetAlready(); //SSL handshake in progress, wants to send data
+								else return justReadAlready(); //SSL handshake in progress, needs more data
 							default:
 								done = true;
 								return retSSLError<WriteResult>("SSL write failed", err);
