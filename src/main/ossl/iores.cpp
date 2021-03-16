@@ -258,13 +258,17 @@ class SSLResource : public IAIOResource {
 			}, data));
 		}
 		void notify([[maybe_unused]] IOCompletionInfo inf) override {} //No-Op because we're a proxy :D
+		static result<IOResource, std::string> openOn(IOResource raw, SSL* ssl){
+			auto sslres = std::make_shared<SSLResource>(raw, ssl);
+			auto bres = sslres->initBIO();
+			if(auto err = bres.err()) return result<IOResource, std::string>::Err(*err);
+			sslres->setSelf(sslres);
+			return result<IOResource, std::string>::Ok(sslres);
+		}
 };
 
 result<IOResource, std::string> openSSLIO(IOResource raw, SSL* ssl){
-	auto sslres = std::make_shared<SSLResource>(raw, ssl);
-	auto bres = sslres->initBIO();
-	if(auto err = bres.err()) return result<IOResource, std::string>::Err(*err);
-	return result<IOResource, std::string>::Ok(sslres);
+	return SSLResource::openOn(raw, ssl);
 }
 result<IOResource, std::string> openSSLIO(IOResource raw, const SSLContext& ctx){
 	auto ssl = SSL_new(ctx.ctx());
