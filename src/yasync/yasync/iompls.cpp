@@ -2,6 +2,7 @@
 
 #include "util.hpp"
 #include <mutex>
+#include <iostream>
 
 namespace yasync::io {
 
@@ -23,9 +24,10 @@ class IOI2Way {
 		std::shared_ptr<IOI2Way> share;
 		std::weak_ptr<IOI> slf;
 		std::weak_ptr<IOI<W, R>> oe;
-		IOI(IOYengine* e, std::shared_ptr<IOI2Way> p) : IAIOResource(e), share(p) {
+		IOI(IOYengine* e, const std::shared_ptr<IOI2Way>& p) : IAIOResource(e), share(p) {
 			share->notivia[R] = e;
 			share->exi[W] = true;
+			std::cout << "IOI " << R << "-" << W << " alloc at " << this << "\n"; 
 		}
 		public:
 			~IOI(){
@@ -39,6 +41,7 @@ class IOI2Way {
 					share->notifi[R] = std::nullopt;
 					share->notivia[R] = nullptr;
 				}
+				std::cout << "IOI " << R << "-" << W << " free at " << this << "\n";
 			}
 			void notify([[maybe_unused]] IOCompletionInfo _) override {}
 			Future<ReadResult> _read(size_t bytes = 0) override {
@@ -64,6 +67,12 @@ class IOI2Way {
 			}
 	};
 	public:
+		IOI2Way(){
+			std::cout << "2Way alloc at " << this << "\n";
+		}
+		~IOI2Way(){
+			std::cout << "2Way freed at " << this << "\n";
+		}
 		static std::pair<IOResource, IOResource> newt(IOYengine* e1, IOYengine* e2){
 			auto p = std::shared_ptr<IOI2Way>(new IOI2Way());
 			return std::pair<IOResource, IOResource>{
