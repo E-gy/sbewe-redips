@@ -65,7 +65,7 @@ int main(int argc, char* args[]){
 			std::map<std::pair<std::string, unsigned>, virt::R1otBuilder> terms;
 			std::map<std::pair<std::string, unsigned>, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
 			for(auto vhost : config.vhosts){
-				auto stack = virt::SServer(new virt::StaticFileServer(vhost.root, vhost.defaultFile.value_or("index.html")));
+				auto stack = virt::SServer(new virt::StaticFileServer(&ioengine, vhost.root, vhost.defaultFile.value_or("index.html")));
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
 				auto fiz = &terms[{vhost.ip, vhost.port}];
 				fiz->addService(vhost.tok(), stack);

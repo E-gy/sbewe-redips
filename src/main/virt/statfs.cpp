@@ -8,9 +8,9 @@ namespace redips::virt {
 
 using namespace magikop;
 
-StaticFileServer::StaticFileServer(std::string r, std::string d) : root(r), deff(d) {}
+StaticFileServer::StaticFileServer(yasync::io::IOYengine* e, std::string r, std::string d) : engine(e), root(r), deff(d) {}
 
-void StaticFileServer::take(yasync::io::IOResource conn, redips::http::SharedRequest req, RespBack respb){
+void StaticFileServer::take([[maybe_unused]] yasync::io::IOResource conn, redips::http::SharedRequest req, RespBack respb){
 	auto relp = root;
 	if(relp[relp.length()-1] != FPATHSEP) relp += '/';
 	auto eop = req->path.find('?');
@@ -19,13 +19,13 @@ void StaticFileServer::take(yasync::io::IOResource conn, redips::http::SharedReq
 	else if(getFileType(relp) == FileType::Directory) relp += FPATHSEP + deff;
 	if(getFileType(relp) != FileType::File) respb(http::Response(http::Status::NOT_FOUND, "File not found :("));
 	else {
-		yasync::io::fileOpenRead(conn->engine, relp).ifElse([=](auto f) mutable {
-			conn->engine->engine <<= (f->template read<std::vector<char>>()) >> ([=](auto ok){
+		yasync::io::fileOpenRead(engine, relp) >> ([=](auto f) mutable {
+			engine->engine <<= (f->template read<std::vector<char>>()) >> ([=](auto ok){
 				respb(http::Response(http::Status::OK, ok));
 			}|[=](auto err){
 				respb(http::Response(http::Status::INTERNAL_SERVER_ERROR, err));
 			});
-		}, [=](auto err){
+		}|[=](auto err){
 			respb(http::Response(http::Status::INTERNAL_SERVER_ERROR, err));
 		});
 	}
