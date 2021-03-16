@@ -14,8 +14,7 @@ using namespace yasync::io;
 SCENARIO("ioi until EOF", "[io][yasync]"){
 	Yengine engine(2);
 	{
-		IOYengine ioengine(&engine);
-		auto ioi = ioi2Way(&ioengine);
+		auto ioi = ioi2Way(&engine);
 		GIVEN("an IOI"){
 			WHEN("reading until EOF"){
 				auto red = ioi.second->read<std::string>();
