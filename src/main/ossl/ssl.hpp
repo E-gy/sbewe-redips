@@ -24,7 +24,7 @@ class SSLStateControl {
 class SSLContext {
 	SSL_CTX* context;
 	public:
-		SSLContext(SSL_CTX* ctx);
+		explicit SSLContext(SSL_CTX* ctx);
 		~SSLContext();
 		SSLContext(SSLContext &&);
 		SSLContext& operator=(SSLContext &&);
