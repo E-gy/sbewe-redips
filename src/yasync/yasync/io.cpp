@@ -94,7 +94,7 @@ class FileResource : public IAIOResource {
 		::epoll_event epm;
 		epm.events = (wr ? EPOLLOUT : EPOLLIN) | EPOLLONESHOT;
 		epm.data.ptr = this;
-		if(::epoll_ctl(engine->ioPo->rh, EPOLL_CTL_ADD, res->rh, &epm)){
+		if(::epoll_ctl(ioengine->ioPo->rh, EPOLL_CTL_ADD, res->rh, &epm)){
 			if(errno == EPERM){
 				//The file does not support non-blocking io :(
 				//That means that all r/w will succeed (and block). So we report ourselves ready for IO, and off to EOD we go!
