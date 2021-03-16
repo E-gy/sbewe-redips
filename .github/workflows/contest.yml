@@ -37,24 +37,24 @@ jobs:
       with:
         name: memcheck-logs
         path: ${{runner.workspace}}/build/Testing/**/MemoryChecker.*.log
-    - name: Generate Coverage
-      if: ${{ always() && steps.collcov.outcome == 'success' }}
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: make ExperimentalCoverage
-    - name: Collect tests coverage
-      if: ${{ always() && steps.collcov.outcome == 'success' }}
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: lcov --capture --directory ./CMakeFiles/sbewe-redips-core-cov.dir -o cov-test.info
-    - name: Combine to actual coverage
-      if: ${{ always() && steps.collcov.outcome == 'success' }}
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: lcov -a cov-base.info -a cov-test.info -o cov.info
-    - name: Publish coverage to Coveralls
-      if: ${{ always() && steps.collcov.outcome == 'success' }}
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ${{runner.workspace}}/build/cov.info
+    # - name: Generate Coverage
+    #   if: ${{ always() && steps.collcov.outcome == 'success' }}
+    #   working-directory: ${{runner.workspace}}/build
+    #   shell: bash
+    #   run: make ExperimentalCoverage
+    # - name: Collect tests coverage
+    #   if: ${{ always() && steps.collcov.outcome == 'success' }}
+    #   working-directory: ${{runner.workspace}}/build
+    #   shell: bash
+    #   run: lcov --capture --directory ./CMakeFiles/sbewe-redips-core-cov.dir -o cov-test.info
+    # - name: Combine to actual coverage
+    #   if: ${{ always() && steps.collcov.outcome == 'success' }}
+    #   working-directory: ${{runner.workspace}}/build
+    #   shell: bash
+    #   run: lcov -a cov-base.info -a cov-test.info -o cov.info
+    # - name: Publish coverage to Coveralls
+    #   if: ${{ always() && steps.collcov.outcome == 'success' }}
+    #   uses: coverallsapp/github-action@master
+    #   with:
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+    #     path-to-lcov: ${{runner.workspace}}/build/cov.info
