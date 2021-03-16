@@ -244,5 +244,6 @@ result<IOResource, std::string> openSSLIO(IOResource raw, const SSLContext& ctx)
 	if(!ssl) return retSSLError<result<IOResource, std::string>>("SSL instantiation from context failed");
 	return openSSLIO(raw, ssl);
 }
+result<IOResource, std::string> openSSLIO(IOResource raw, const SharedSSLContext& ctx){ return openSSLIO(raw, ctx->ctx()); }
 
 }

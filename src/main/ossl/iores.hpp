@@ -15,5 +15,9 @@ result<IOResource, std::string> openSSLIO(IOResource, SSL*);
  * Opens an OpenSSL layer over the resource on given context
  */
 result<IOResource, std::string> openSSLIO(IOResource, const SSLContext&);
+/**
+ * Opens an OpenSSL layer over the resource on given context
+ */
+result<IOResource, std::string> openSSLIO(IOResource, const SharedSSLContext&);
 
 }
