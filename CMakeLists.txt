@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.11)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/.cmake")
 Include(FetchContent)
 
 project(sbewe-redips-core VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 add_compile_definitions("$<$<CONFIG:DEBUG>:_DEBUG>")
+
+Include(CodeCoverage)
 
 find_package(Threads)
 find_package(OpenSSL)
@@ -97,7 +100,12 @@ target_link_libraries(sbewe-redips-tests Catch2::Catch2WithMain)
 include_directories(sbewe-redips-tests ${PROJECT_SOURCE_DIR}/lib)
 include_directories(sbewe-redips-tests ${PROJECT_SOURCE_DIR}/src/main)
 include_directories(sbewe-redips-tests ${PROJECT_SOURCE_DIR}/src/test)
-target_link_libraries(sbewe-redips-tests $<IF:$<CONFIG:DEBUG>,sbewe-redips-core-cov,sbewe-redips-core>)
+target_link_libraries(sbewe-redips-tests sbewe-redips-core-cov)
+setup_target_for_coverage_lcov(
+	NAME sbewe-redips-tests-cov
+	EXECUTABLE sbewe-redips-tests
+	BASE_DIRECTORY "${PROJECT_SOURCE_DIR}/src"
+)
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
 include(CTest)
