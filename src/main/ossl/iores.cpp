@@ -45,12 +45,6 @@ class SSLResource : public IAIOResource {
 			return BIO_ctrl_pending(bioOut);
 		}
 		/**
-		 * Whether, and how much, data SSL made ready for consumption
-		 */
-		size_t sslMadeDataReady(){
-			return SSL_pending(ssl);
-		}
-		/**
 		 * Yeets everything in out BIO into raw.
 		 * Returns future that completes when everything got yeeted
 		 */
