@@ -39,7 +39,7 @@ jobs:
       shell: bash
       run: make sbewe-redips-tests-cov
     - name: Filter coverage
-      id: collcov
+      if: ${{ always() && steps.testcov.outcome == 'success' }}
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: lcov -e sbewe-redips-tests-cov.info "/workspaces/sbewe-redips/src/yasync/*" -e sbewe-redips-tests-cov.info "/workspaces/sbewe-redips/src/main/*" -o sbewe-redips-tests-cov.info
