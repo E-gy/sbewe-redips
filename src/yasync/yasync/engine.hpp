@@ -17,15 +17,18 @@
 
 namespace yasync {
 
-template<typename T> class FutureG : public IFutureT<T> {
+class IFutureGa {};
+
+template<typename T> class IFutureG : public IFutureT<T>, public IFutureGa {
 	protected:
 		FutureState s = FutureState::Suspended;
 		movonly<T> val;
 	public:
 		const Generator<T> gen;
-		FutureG(Generator<T> g) : gen(g) {}
-		FutureState state(){ return s; }
-		movonly<T> result(){ return std::move(val); }
+		IFutureG(Generator<T> g) : gen(g) {}
+		FutureState state() override { return s; }
+		movonly<T> result() override { return std::move(val); }
+		void onQueued() override { s = FutureState::Queued; }
 		void set(FutureState state){ s = state; }
 		void set(FutureState state, movonly<T> && v){
 			set(state);
@@ -36,13 +39,16 @@ template<typename T> class FutureG : public IFutureT<T> {
 		#endif
 };
 
+using FutureGa = std::shared_ptr<IFutureGa>;
+template<typename T> using FutureG = std::shared_ptr<IFutureG<T>>;
+
 /**
  * Transforms a generator into a future
  * @param gen the generator
  * @returns future
  */ 
 template<typename T> Future<T> defer(Generator<T> gen){
-	return Future<T>(new FutureG<T>(gen));
+	return std::make_shared<IFutureG<T>>(gen);
 }
 
 template<typename V, typename U, typename F> class ChainingGenerator : public IGeneratorT<V> {
@@ -195,7 +201,7 @@ template<typename V, typename U, typename F> Future<V> them(Future<U> f, F map){
 
 class Yengine {
 	/**
-	 * Queue<FutureG<?>>
+	 * Queue<Future<?>>
 	 */
 	ThreadSafeQueue<AFuture> work;
 	/**
@@ -212,8 +218,7 @@ class Yengine {
 		 * @returns f
 		 */ 
 		template<typename T> Future<T> execute(Future<T> f){
-			auto ft = std::dynamic_pointer_cast<FutureG<T>>(f);
-			ft->set(FutureState::Queued);
+			f->onQueued();
 			work.push(f);
 			return f;
 		}
@@ -234,9 +239,7 @@ class Yengine {
 		 * !!!USE CANCELLATION WITH CARE!!!
 		 * On cancellation the entire awaited chain is yeeted into oblivion.
 		 */
-		template<typename T> void notify(Future<T> f){
-			work.push(f);
-		}
+		void notify(AFuture f);
 		/**
 		 * Notifies the engine of cancellation of an external future.
 		 * !!!USE CANCELLATION WITH CARE!!!
@@ -279,7 +282,7 @@ class Yengine {
 				return;
 			}
 			#endif
-			auto gent = (FutureG<void*>*) task.get();
+			auto gent = reinterpret_cast<IFutureG<void*>*>(task.get());
 			gent->set(FutureState::Running);
 			auto g = gent->gen->resume(this);
 			if(auto awa = std::get_if<AFuture>(&g)){
