@@ -177,8 +177,10 @@ class SSLResource : public IAIOResource {
 									return retSSLError<ReadResult>("SSL read failed", err);
 							}
 						}
+						hedlog('R') << "Read " << r << "/" << bytes << " bytes \n";
 						resd.insert(resd.end(), buffer.begin(), buffer.begin() + r);
 						if(bytes > 0 && resd.size() > bytes){
+							hedlog('R') << "Read in enough!\n";
 							done = true;
 							return ReadResult::Ok(resd);
 						}
@@ -249,6 +251,7 @@ class SSLResource : public IAIOResource {
 								return retSSLError<WriteResult>("SSL write failed", err);
 						}
 					}
+					hedlog('W') << "Written " << w << "/" << wrb.size() << " bytes \n";
 					wrb.erase(wrb.begin(), wrb.begin()+w);
 					if(wrb.size() == 0) return justYeetAlready(); //Written out all user data; yeet!
 				}
