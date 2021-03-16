@@ -60,8 +60,6 @@ int main(int argc, char* args[]){
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
 			//--
-			// subject to changes!
-			//TODO cross-serve smh
 			std::map<std::pair<std::string, unsigned>, virt::R1otBuilder> terms;
 			std::map<std::pair<std::string, unsigned>, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
 			for(auto vhost : config.vhosts){
