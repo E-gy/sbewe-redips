@@ -214,6 +214,11 @@ class SSLResource : public IAIOResource {
 						return WriteResult::Err(*err);
 					}
 					hedlog('W') << "yeet completed\n";
+					if(wrb.empty()){
+						done = true;
+						hedlog('W') << "Written out everything!\n";
+						return WriteResult::Ok();
+					}
 				}
 				hedlog('W') << "checking black box...\n";
 				hedlog('W') << "Out pending: " << BIO_ctrl_pending(bioOut) << "\n";
