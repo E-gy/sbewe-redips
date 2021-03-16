@@ -145,47 +145,43 @@ class SSLResource : public IAIOResource {
 				hedlog('R') << "Black box is pre: " << SSL_in_before(ssl) << "\n";
 				hedlog('R') << "Black box is init: " << SSL_in_init(ssl) << "\n";
 				hedlog('R') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
-				// if(SSL_in_before(ssl) && SSL_is_server(ssl)) return justReadAlready(); //Trigger initial read
 				if(sslWantsToSend()) return justYeetAlready();
-				// if(SSL_in_init(ssl)) return justReadAlready();
-				// if(SSL_is_init_finished(ssl)){
-					while(true){
-						hedlog('R') << "attempting SSL read\n";
-						ERR_clear_error();
-						auto r = SSL_read(ssl, buffer.data(), buffer.size());
-						if(r <= 0){
-							auto err = SSL_get_error(ssl, r);
-							hedlog('R') << err << "\n";
-							if(sslWantsToSend()) err = SSL_ERROR_WANT_WRITE;
-							switch(err){
-								case SSL_ERROR_WANT_WRITE:
-									hedlog('R') << "WANT WRITE\n";
-									return justYeetAlready(); //SSL handshake in progress, wants to send data
-								case SSL_ERROR_WANT_READ:
-									hedlog('R') << "WANT READ\n";
-									return justReadAlready(); //SSL handshake in progress, needs more data
-								case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
-									done = true;
-									return retSSLError<ReadResult>("Fatal SSL error :/");
-								case SSL_ERROR_SYSCALL:{ //Some non-recoverable, fatal I/O error occurred. The OpenSSL error queue may contain more information on the error.
-									done = true;
-									auto nerr = ERR_get_error();
-									return retSSLError<ReadResult>("Fatal SSL I/O error :/", nerr ? nerr : err); //may lol
-								}
-								default:
-									done = true;
-									return retSSLError<ReadResult>("SSL read failed", err);
+				while(true){
+					hedlog('R') << "attempting SSL read\n";
+					ERR_clear_error();
+					auto r = SSL_read(ssl, buffer.data(), buffer.size());
+					if(r <= 0){
+						auto err = SSL_get_error(ssl, r);
+						hedlog('R') << err << "\n";
+						if(sslWantsToSend()) err = SSL_ERROR_WANT_WRITE;
+						switch(err){
+							case SSL_ERROR_WANT_WRITE:
+								hedlog('R') << "WANT WRITE\n";
+								return justYeetAlready(); //SSL handshake in progress, wants to send data
+							case SSL_ERROR_WANT_READ:
+								hedlog('R') << "WANT READ\n";
+								return justReadAlready(); //SSL handshake in progress, needs more data
+							case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
+								done = true;
+								return retSSLError<ReadResult>("Fatal SSL error :/");
+							case SSL_ERROR_SYSCALL:{ //Some non-recoverable, fatal I/O error occurred. The OpenSSL error queue may contain more information on the error.
+								done = true;
+								auto nerr = ERR_get_error();
+								return retSSLError<ReadResult>("Fatal SSL I/O error :/", nerr ? nerr : err); //may lol
 							}
-						}
-						hedlog('R') << "Read " << r << "/" << bytes << " bytes \n";
-						resd.insert(resd.end(), buffer.begin(), buffer.begin() + r);
-						if(bytes > 0 && resd.size() > bytes){
-							hedlog('R') << "Read in enough!\n";
-							done = true;
-							return ReadResult::Ok(resd);
+							default:
+								done = true;
+								return retSSLError<ReadResult>("SSL read failed", err);
 						}
 					}
-				// }
+					hedlog('R') << "Read " << r << "/" << bytes << " bytes \n";
+					resd.insert(resd.end(), buffer.begin(), buffer.begin() + r);
+					if(bytes > 0 && resd.size() > bytes){
+						hedlog('R') << "Read in enough!\n";
+						done = true;
+						return ReadResult::Ok(resd);
+					}
+				}
 				//Uh oh, how did we get here?
 				done = true;
 				return ReadResult::Err("Reached undetermined read state");
@@ -230,7 +226,6 @@ class SSLResource : public IAIOResource {
 				hedlog('W') << "Black box is pre: " << SSL_in_before(ssl) << "\n";
 				hedlog('W') << "Black box is init: " << SSL_in_init(ssl) << "\n";
 				hedlog('W') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
-				// if(SSL_in_before(ssl) && !SSL_is_server(ssl)) return justYeetAlready(); //Trigger initial write
 				if(sslWantsToSend()) return justYeetAlready();
 				//Let's yeet some data
 				while(true){
