@@ -70,7 +70,7 @@ class SSLResource : public IAIOResource {
 				for(unsigned i = 0; i < pending; i++) std::cout << (unsigned)wrout[i] << " ";
 				std::cout << "\n";
 			}
-			return engine->engine <<= raw->write(wrout);
+			return engine <<= raw->write(wrout);
 		}
 		/**
 		 * When read query to raw completes, handles transferring the data through SSL
@@ -108,7 +108,7 @@ class SSLResource : public IAIOResource {
 		/// Queries raw to read next chunk, puts the future in rip and returns it
 		inline auto justReadAlready(){
 			std::cout << "querying read\n";
-			return *(rip = engine->engine <<= raw->_read(1));
+			return *(rip = engine <<= raw->_read(1));
 		}
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {

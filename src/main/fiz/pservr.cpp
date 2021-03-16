@@ -28,11 +28,11 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
 	}, [=]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
-		conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
+		conn->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
 			vs->take(conn, reqwest, [=](auto resp){
 				auto wr = conn->writer();
 				resp.write(wr);
-				conn->engine->engine <<= wr->eod() >> ([](){}|[](auto err){
+				conn->engine <<= wr->eod() >> ([](){}|[](auto err){
 					std::cerr << "Failed to respond: " << err << "\n";
 				});
 			});

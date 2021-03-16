@@ -66,12 +66,12 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		}
 		openSSLIO(conn, ssl) >> ([vs, ssl](auto conn){
 			SSL_set_accept_state(ssl);
-			conn->engine->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
+			conn->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
 				std::cout << "reqwest!\n";
 				vs->take(conn, reqwest, [=](auto resp){
 					auto wr = conn->writer();
 					resp.write(wr);
-					conn->engine->engine <<= wr->eod() >> ([](){}|[](auto err){
+					conn->engine <<= wr->eod() >> ([](){}|[](auto err){
 						std::cerr << "Failed to respond: " << err << "\n";
 					});
 				});
