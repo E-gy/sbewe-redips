@@ -83,12 +83,19 @@ target_link_libraries(sbewe-redips-cov sbewe-redips-core-cov)
 
 # Tests
 
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/crt)
+add_custom_target(gen-test-crts
+	COMMAND "${PROJECT_SOURCE_DIR}/certs/gen.$<IF:$<BOOL:${WIN32}>,bat,sh>"
+	WORKING_DIRECTORY "./crt"
+)
+
 file(GLOB_RECURSE src_test "${PROJECT_SOURCE_DIR}/src/test/*.hpp" "${PROJECT_SOURCE_DIR}/src/test/*.cpp")
 add_executable(sbewe-redips-tests ${src_test})
 target_compile_options(sbewe-redips-tests PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wno-unused -Wno-missing-field-initializers -Werror>
 )
+add_dependencies(sbewe-redips-tests gen-test-crts)
 
 # Catch2v3 from Fetch works properly, nice 
 FetchContent_Declare(
