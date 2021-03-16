@@ -1,9 +1,7 @@
 #include "iores.hpp"
 
 #include <array>
-#include <iostream>
 #include <openssl/err.h>
-#include <thread>
 
 namespace yasync::io::ssl {
 
@@ -32,7 +30,6 @@ class SSLResource : public IAIOResource {
 				SSL_free(ssl);
 			}
 		}
-		inline auto& hedlog(char c){ return std::cout << "[" << this << "][" << c << "] "; }
 		result<void, std::string> initBIO(){
 			if(!ssl) return retSSLError<result<void, std::string>>("SSL resource in errored state");
 			if(!(bioIn = BIO_new(BIO_s_mem()))) return retSSLError<result<void, std::string>>("BIO in construction failed");
@@ -59,18 +56,10 @@ class SSLResource : public IAIOResource {
 		 */
 		Future<WriteResult> yeetPending(){
 			auto pending = sslWantsToSend();
-			if(!pending){
-				hedlog('Y') << "nothing to yeet\n";
-				return completed(WriteResult::Ok());
-			}
+			if(!pending) return completed(WriteResult::Ok());
 			std::vector<char> wrout;
 			wrout.resize(pending);
-			auto mvd = BIO_read(bioOut, wrout.data(), pending);
-			hedlog('Y') << "querying yeet " << pending << " (" << mvd << ") bytes\n";
-			if(pending == 7){
-				for(unsigned i = 0; i < pending; i++) std::cout << (unsigned)wrout[i] << " ";
-				std::cout << "\n";
-			}
+			BIO_read(bioOut, wrout.data(), pending);
 			return engine <<= raw->write(wrout);
 		}
 		/**
@@ -83,38 +72,19 @@ class SSLResource : public IAIOResource {
 			rip = std::nullopt;
 			if(auto err = rres.err()) return result<bool, std::string>::Err(*err);
 			//Transfer available data to SSL
-			while(true){
-				auto data = rres.ok();
-				hedlog('C') << "received " << data->size() << " bytes\n";
-				if(data->size() == 0) return result<bool, std::string>::Ok(true); 
-				size_t wr = 0;
-				while(wr < data->size()) wr += BIO_write(bioIn, data->data() + wr, data->size() - wr); //BIO to memory is sync duh, *and* always succeeds as long as there's memory available
-				/*if(!inictx){ //SNI has yet to switch context. Retain initial hadshake data. Query read; resubmit
-					inictx = true;
-					auto r = SSL_read(ssl, buffer.data(), buffer.size());
-					if(r <= 0){
-						auto err = SSL_get_error(ssl, r);
-						if(err == SSL_ERROR_WANT_READ){
-							continue;
-						} else hedlog('C') << printSSLError("Yeah, no ") << "\n";
-					} else hedlog('C') << "ughm, wut?\n"; //well that is unexpected. uhh wtf?
-				}*/
-				break;
-			}
+			auto data = rres.ok();
+			if(data->size() == 0) return result<bool, std::string>::Ok(true); 
+			size_t wr = 0;
+			while(wr < data->size()) wr += BIO_write(bioIn, data->data() + wr, data->size() - wr); //BIO to memory is sync duh, *and* always succeeds as long as there's memory available
 			return result<bool, std::string>::Ok(false);
-			//TryResendBufferedData idk wut???
 		}
 		/// Yeets pending data, puts the future in wip and returns it 
 		inline auto justYeetAlready(){ return *(wip = yeetPending()); }
 		/// Queries raw to read next chunk, puts the future in rip and returns it
-		inline auto justReadAlready(){
-			hedlog('C') << "querying read\n";
-			return *(rip = engine <<= raw->_read(1));
-		}
+		inline auto justReadAlready(){ return *(rip = engine <<= raw->_read(1)); }
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
-				hedlog('R') << "-- On " << std::this_thread::get_id() << " --\n";
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
@@ -123,10 +93,8 @@ class SSLResource : public IAIOResource {
 					}
 					if(*rres.ok()){
 						done = true;
-						hedlog('R') << "reached EOF\n";
 						return ReadResult::Ok(resd);
 					}
-					hedlog('R') << "read completed\n";
 				}
 				if(wip){
 					auto rres = *((*wip)->result());
@@ -135,32 +103,16 @@ class SSLResource : public IAIOResource {
 						done = true;
 						return ReadResult::Err(*err);
 					}
-					hedlog('R') << "yeet completed\n";
 				}
-				hedlog('R') << "checking black box...\n";
-				hedlog('R') << "Out pending: " << BIO_ctrl_pending(bioOut) << "\n";
-				hedlog('R') << "In write guarantee: " << BIO_ctrl_get_write_guarantee(bioOut) << "\n";
-				hedlog('R') << "In read request: " << BIO_ctrl_get_read_request(bioOut) << "\n";
-				hedlog('R') << "Black box state: " << SSL_get_state(ssl) << "\n";
-				hedlog('R') << "Black box is pre: " << SSL_in_before(ssl) << "\n";
-				hedlog('R') << "Black box is init: " << SSL_in_init(ssl) << "\n";
-				hedlog('R') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
 				if(sslWantsToSend()) return justYeetAlready();
 				while(true){
-					hedlog('R') << "attempting SSL read\n";
-					ERR_clear_error();
 					auto r = SSL_read(ssl, buffer.data(), buffer.size());
 					if(r <= 0){
 						auto err = SSL_get_error(ssl, r);
-						hedlog('R') << err << "\n";
 						if(sslWantsToSend()) err = SSL_ERROR_WANT_WRITE;
 						switch(err){
-							case SSL_ERROR_WANT_WRITE:
-								hedlog('R') << "WANT WRITE\n";
-								return justYeetAlready(); //SSL handshake in progress, wants to send data
-							case SSL_ERROR_WANT_READ:
-								hedlog('R') << "WANT READ\n";
-								return justReadAlready(); //SSL handshake in progress, needs more data
+							case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
+							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data
 							case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
 								done = true;
 								return retSSLError<ReadResult>("Fatal SSL error :/");
@@ -174,10 +126,8 @@ class SSLResource : public IAIOResource {
 								return retSSLError<ReadResult>("SSL read failed", err);
 						}
 					}
-					hedlog('R') << "Read " << r << "/" << bytes << " bytes \n";
 					resd.insert(resd.end(), buffer.begin(), buffer.begin() + r);
 					if(bytes > 0 && resd.size() > bytes){
-						hedlog('R') << "Read in enough!\n";
 						done = true;
 						return ReadResult::Ok(resd);
 					}
@@ -190,7 +140,6 @@ class SSLResource : public IAIOResource {
 		Future<WriteResult> _write(std::vector<char>&& data) override {
 			return defer(lambdagen([this, self = slf.lock()]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& wrb) -> std::variant<AFuture, movonly<WriteResult>> {
 				if(done) return WriteResult::Ok();
-				hedlog('W') << "-- On " << std::this_thread::get_id() << " --\n";
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
@@ -199,10 +148,8 @@ class SSLResource : public IAIOResource {
 					}
 					if(*rres.ok()){
 						done = true;
-						hedlog('W') << "reached EOF\n";
 						return WriteResult::Err("Reached EOT when querying handshake data");
 					}
-					hedlog('W') << "read completed\n";
 				}
 				if(wip){
 					auto rres = *((*wip)->result());
@@ -211,42 +158,25 @@ class SSLResource : public IAIOResource {
 						done = true;
 						return WriteResult::Err(*err);
 					}
-					hedlog('W') << "yeet completed\n";
 					if(wrb.empty()){
 						done = true;
-						hedlog('W') << "Written out everything!\n";
 						return WriteResult::Ok();
 					}
 				}
-				hedlog('W') << "checking black box...\n";
-				hedlog('W') << "Out pending: " << BIO_ctrl_pending(bioOut) << "\n";
-				hedlog('W') << "In write guarantee: " << BIO_ctrl_get_write_guarantee(bioOut) << "\n";
-				hedlog('W') << "In read request: " << BIO_ctrl_get_read_request(bioOut) << "\n";
-				hedlog('W') << "Black box state: " << SSL_get_state(ssl) << "\n";
-				hedlog('W') << "Black box is pre: " << SSL_in_before(ssl) << "\n";
-				hedlog('W') << "Black box is init: " << SSL_in_init(ssl) << "\n";
-				hedlog('W') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
 				if(sslWantsToSend()) return justYeetAlready();
 				//Let's yeet some data
 				while(true){
-					hedlog('W') << "attempting SSL write\n";
 					auto w = SSL_write(ssl, wrb.data(), wrb.size());
 					if(w <= 0){
 						auto err = SSL_get_error(ssl, w);
-						hedlog('W') << err << "\n";
 						switch(err){
-							case SSL_ERROR_WANT_WRITE:
-								hedlog('W') << "WANT WRITE\n";
-								return justYeetAlready(); //SSL handshake in progress, wants to send data
-							case SSL_ERROR_WANT_READ:
-								hedlog('W') << "WANT READ\n";
-								return justReadAlready(); //SSL handshake in progress, needs more data 
+							case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
+							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data 
 							default:
 								done = true;
 								return retSSLError<WriteResult>("SSL write failed", err);
 						}
 					}
-					hedlog('W') << "Written " << w << "/" << wrb.size() << " bytes \n";
 					wrb.erase(wrb.begin(), wrb.begin()+w);
 					if(wrb.size() == 0) return justYeetAlready(); //Written out all user data; yeet!
 				}
