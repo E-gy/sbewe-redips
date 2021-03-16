@@ -147,8 +147,8 @@ class SSLResource : public IAIOResource {
 				hedlog('R') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
 				// if(SSL_in_before(ssl) && SSL_is_server(ssl)) return justReadAlready(); //Trigger initial read
 				if(sslWantsToSend()) return justYeetAlready();
-				if(SSL_in_init(ssl)) return justReadAlready();
-				if(SSL_is_init_finished(ssl)){
+				// if(SSL_in_init(ssl)) return justReadAlready();
+				// if(SSL_is_init_finished(ssl)){
 					while(true){
 						hedlog('R') << "attempting SSL read\n";
 						ERR_clear_error();
@@ -183,7 +183,7 @@ class SSLResource : public IAIOResource {
 							return ReadResult::Ok(resd);
 						}
 					}
-				}
+				// }
 				//Uh oh, how did we get here?
 				done = true;
 				return ReadResult::Err("Reached undetermined read state");
