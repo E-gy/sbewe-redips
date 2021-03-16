@@ -32,7 +32,7 @@ class SSLResource : public IAIOResource {
 				SSL_free(ssl);
 			}
 		}
-		inline auto& hedlog(char c){ return std::cout << "[" << this << "][" << c << "]"; }
+		inline auto& hedlog(char c){ return std::cout << "[" << this << "][" << c << "] "; }
 		result<void, std::string> initBIO(){
 			if(!ssl) return retSSLError<result<void, std::string>>("SSL resource in errored state");
 			if(!(bioIn = BIO_new(BIO_s_mem()))) return retSSLError<result<void, std::string>>("BIO in construction failed");
@@ -114,7 +114,7 @@ class SSLResource : public IAIOResource {
 		Future<ReadResult> _read(size_t bytes) override {
 			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
 				if(done) return ReadResult::Ok(resd);
-				hedlog('R') << "-- On " << std::this_thread::get_id() << "\n";
+				hedlog('R') << "-- On " << std::this_thread::get_id() << " --\n";
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
@@ -145,7 +145,7 @@ class SSLResource : public IAIOResource {
 				hedlog('R') << "Black box is pre: " << SSL_in_before(ssl) << "\n";
 				hedlog('R') << "Black box is init: " << SSL_in_init(ssl) << "\n";
 				hedlog('R') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
-				if(SSL_in_before(ssl)) return justReadAlready(); //Trigger initial read
+				// if(SSL_in_before(ssl) && SSL_is_server(ssl)) return justReadAlready(); //Trigger initial read
 				if(sslWantsToSend()) return justYeetAlready();
 				if(SSL_in_init(ssl)) return justReadAlready();
 				if(SSL_is_init_finished(ssl)){
@@ -158,8 +158,12 @@ class SSLResource : public IAIOResource {
 							hedlog('R') << err << "\n";
 							if(sslWantsToSend()) err = SSL_ERROR_WANT_WRITE;
 							switch(err){
-								case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
-								case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data
+								case SSL_ERROR_WANT_WRITE:
+									hedlog('R') << "WANT WRITE\n";
+									return justYeetAlready(); //SSL handshake in progress, wants to send data
+								case SSL_ERROR_WANT_READ:
+									hedlog('R') << "WANT READ\n";
+									return justReadAlready(); //SSL handshake in progress, needs more data
 								case SSL_ERROR_SSL: //A non-recoverable, fatal error in the SSL library occurred, usually a protocol error. OpenSSL error queue contains more information on the error.
 									done = true;
 									return retSSLError<ReadResult>("Fatal SSL error :/");
@@ -188,6 +192,7 @@ class SSLResource : public IAIOResource {
 		Future<WriteResult> _write(std::vector<char>&& data) override {
 			return defer(lambdagen([this, self = slf.lock()]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& wrb) -> std::variant<AFuture, movonly<WriteResult>> {
 				if(done) return WriteResult::Ok();
+				hedlog('W') << "-- On " << std::this_thread::get_id() << " --\n";
 				if(rip){
 					auto rres = handleReadCompleted();
 					if(auto err = rres.err()){
@@ -218,6 +223,7 @@ class SSLResource : public IAIOResource {
 				hedlog('W') << "Black box is pre: " << SSL_in_before(ssl) << "\n";
 				hedlog('W') << "Black box is init: " << SSL_in_init(ssl) << "\n";
 				hedlog('W') << "Black box is post: " << SSL_is_init_finished(ssl) << "\n";
+				// if(SSL_in_before(ssl) && !SSL_is_server(ssl)) return justYeetAlready(); //Trigger initial write
 				if(sslWantsToSend()) return justYeetAlready();
 				//Let's yeet some data
 				while(true){
@@ -225,10 +231,14 @@ class SSLResource : public IAIOResource {
 					auto w = SSL_write(ssl, wrb.data(), wrb.size());
 					if(w <= 0){
 						auto err = SSL_get_error(ssl, w);
-						hedlog('W') << err;
+						hedlog('W') << err << "\n";
 						switch(err){
-							case SSL_ERROR_WANT_WRITE: return justYeetAlready(); //SSL handshake in progress, wants to send data
-							case SSL_ERROR_WANT_READ: return justReadAlready(); //SSL handshake in progress, needs more data 
+							case SSL_ERROR_WANT_WRITE:
+								hedlog('W') << "WANT WRITE\n";
+								return justYeetAlready(); //SSL handshake in progress, wants to send data
+							case SSL_ERROR_WANT_READ:
+								hedlog('W') << "WANT READ\n";
+								return justReadAlready(); //SSL handshake in progress, needs more data 
 							default:
 								done = true;
 								return retSSLError<WriteResult>("SSL write failed", err);
