@@ -84,10 +84,12 @@ target_link_libraries(sbewe-redips-cov sbewe-redips-core-cov)
 # Tests
 
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/crt)
-add_custom_target(gen-test-crts
+add_custom_command(
+	OUTPUT ./crt/server.crt ./crt/server.key ./crt/client.crt ./crt/client.key
 	COMMAND "${PROJECT_SOURCE_DIR}/certs/gen.$<IF:$<BOOL:${WIN32}>,bat,sh>"
 	WORKING_DIRECTORY "./crt"
 )
+add_custom_target(gen-test-crts DEPENDS ./crt/server.crt ./crt/server.key ./crt/client.crt ./crt/client.key)
 
 file(GLOB_RECURSE src_test "${PROJECT_SOURCE_DIR}/src/test/*.hpp" "${PROJECT_SOURCE_DIR}/src/test/*.cpp")
 add_executable(sbewe-redips-tests ${src_test})
