@@ -12,7 +12,7 @@ using namespace yasync;
 using namespace yasync::io;
 
 SCENARIO("ioi until EOF", "[io][yasync]"){
-	Yengine engine(2);
+	Yengine engine(1); //FIXME!
 	{
 		auto ioi = ioi2Way(&engine);
 		GIVEN("an IOI"){
