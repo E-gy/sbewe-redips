@@ -10,12 +10,17 @@
 #include <ossl/ssl.hpp>
 
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <utility>
 #include <fstream>
 #include <unordered_set>
 
 namespace redips {
+
+// helper type for the visitor
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+// explicit deduction guide (not needed as of C++20)
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using namespace redips;
 using namespace magikop;
@@ -60,19 +65,22 @@ int main(int argc, char* args[]){
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
 			//--
-			std::map<std::pair<std::string, unsigned>, virt::R1otBuilder> terms;
-			std::map<std::pair<std::string, unsigned>, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
+			std::unordered_map<IPp, virt::R1otBuilder> terms;
+			std::unordered_map<IPp, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
 			for(auto vhost : config.vhosts){
-				auto stack = virt::SServer(new virt::StaticFileServer(&ioengine, vhost.root, vhost.defaultFile.value_or("index.html")));
+				virt::SServer stack = std::visit(overloaded {
+					[&](const config::FileServer fs){ return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
+					[&](const config::Proxy) -> virt::SServer { throw std::invalid_argument("Proxying not yet implemented!"); }
+				}, vhost.mode);
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
-				auto fiz = &terms[{vhost.ip, vhost.port}];
+				auto fiz = &terms[vhost.address];
 				fiz->addService(vhost.tok(), stack);
 				if(vhost.isDefault) fiz->setDefaultService(stack);
-				if(auto ssl = vhost.ssl) yasync::io::ssl::createSSLContext(ssl->cert, ssl->key) >> ([&](auto sctx){ sslctx[{vhost.ip, vhost.port}].addHost(sctx, vhost.tok()); }|[&](auto err){ std::cerr << "Failed to initalize VHost ssl context: " << err << "\n"; });
+				if(auto ssl = vhost.tls) yasync::io::ssl::createSSLContext(ssl->cert, ssl->key) >> ([&](auto sctx){ sslctx[vhost.address].addHost(sctx, vhost.tok()); }|[&](auto err){ std::cerr << "Failed to initalize VHost ssl context: " << err << "\n"; });
 			}
 			for(auto ent : terms){
 				if(!okay) break;
-				(sslctx.count(ent.first) > 0 ? fiz::listenOnSecure(&ioengine, ent.first.first, ent.first.second, sslctx[ent.first], ent.second.build()) : fiz::listenOn(&ioengine, ent.first.first, ent.first.second, ent.second.build())) >> ([&](fiz::SListener li){
+				(sslctx.count(ent.first) > 0 ? fiz::listenOnSecure(&ioengine, ent.first, sslctx[ent.first], ent.second.build()) : fiz::listenOn(&ioengine, ent.first, ent.second.build())) >> ([&](fiz::SListener li){
 					lists->push_back(li);
 					dun->add(&engine, li->onShutdown());
 				}|[&](auto err){
