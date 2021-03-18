@@ -1,7 +1,6 @@
 #include <yasync/iosock.hpp>
 #include "pservrs.hpp"
 
-#include <util/ip.hpp>
 #include <ossl/iores.hpp>
 
 #include <string>
@@ -44,8 +43,8 @@ int handleSNI(SSL* ssl, int* al, void* listener){
 	return reinterpret_cast<P2VLSNIHandler*>(listener)->handleSNI(ssl, al);
 }
 
-template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const std::string& addr, unsigned port, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
-	auto ar = yasync::io::NetworkedAddressInfo::find<SDomain, SType, SProto>(addr, std::to_string(port));
+template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const IPp& ipp, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
+	auto ar = yasync::io::NetworkedAddressInfo::find<SDomain, SType, SProto>(ipp.ip, ipp.portstr());
 	if(auto err = ar.err()) return *err;
 	auto acctxr = yasync::io::ssl::createSSLContext();
 	if(auto err = acctxr.err()) return *err;
@@ -82,10 +81,10 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	return std::shared_ptr<IListener>(new P2VListener<decltype(listener)>(listener, *lir2.ok(), acctx, sniha));
 }
 
-result<SListener, std::string> listenOnSecure(yasync::io::IOYengine* e, const std::string& addr, unsigned port, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
-	if(!isValidPort(port)) return "Invalid port"s;
-	if(isValidIPv6(addr)) return listenOnV<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(e, addr, port, hmap, vs);
-	else if(isValidIPv4(addr)) return listenOnV<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(e, addr, port, hmap, vs);
+result<SListener, std::string> listenOnSecure(yasync::io::IOYengine* e, const IPp& ipp, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
+	if(!ipp.isValidPort()) return "Invalid port"s;
+	if(ipp.isValidIPv6()) return listenOnV<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(e, ipp, hmap, vs);
+	else if(ipp.isValidIPv4()) return listenOnV<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(e, ipp, hmap, vs);
 	else return "Invalid address"s;
 }
 

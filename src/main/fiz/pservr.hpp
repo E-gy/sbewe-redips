@@ -1,6 +1,7 @@
 #pragma once
 
 #include <yasync/io.hpp>
+#include <util/ip.hpp>
 #include <virt/vservr.hpp>
 
 namespace redips::fiz {
@@ -14,6 +15,6 @@ class IListener {
 
 using SListener = std::shared_ptr<IListener>;
 
-result<SListener, std::string> listenOn(yasync::io::IOYengine*, const std::string& addr, unsigned port, virt::SServer);
+result<SListener, std::string> listenOn(yasync::io::IOYengine*, const IPp& ipp, virt::SServer);
 
 }

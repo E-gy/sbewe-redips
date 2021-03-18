@@ -1,8 +1,6 @@
 #include <yasync/iosock.hpp>
 #include "pservr.hpp"
 
-#include <util/ip.hpp>
-
 #include <string>
 #include <iostream>
 
@@ -21,8 +19,8 @@ template<typename LiSo> class P2VListener : public IListener {
 		void shutdown() override { liso->shutdown(); }
 };
 
-template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const std::string& addr, unsigned port, virt::SServer vs){
-	auto ar = yasync::io::NetworkedAddressInfo::find<SDomain, SType, SProto>(addr, std::to_string(port));
+template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const IPp& ipp, virt::SServer vs){
+	auto ar = yasync::io::NetworkedAddressInfo::find<SDomain, SType, SProto>(ipp.ip, ipp.portstr());
 	if(auto err = ar.err()) return *err;
 	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, []([[maybe_unused]] auto _, yasync::io::sysneterr_t err, const std::string& location){
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
@@ -45,10 +43,10 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	return std::shared_ptr<IListener>(new P2VListener<decltype(listener)>(listener, *lir2.ok()));
 }
 
-result<SListener, std::string> listenOn(yasync::io::IOYengine* e, const std::string& addr, unsigned port, virt::SServer vs){
-	if(!isValidPort(port)) return "Invalid port"s;
-	if(isValidIPv6(addr)) return listenOnV<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(e, addr, port, vs);
-	else if(isValidIPv4(addr)) return listenOnV<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(e, addr, port, vs);
+result<SListener, std::string> listenOn(yasync::io::IOYengine* e, const IPp& ipp, virt::SServer vs){
+	if(!ipp.isValidPort()) return "Invalid port"s;
+	if(ipp.isValidIPv6()) return listenOnV<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(e, ipp, vs);
+	else if(ipp.isValidIPv4()) return listenOnV<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(e, ipp, vs);
 	else return "Invalid address"s;
 }
 
