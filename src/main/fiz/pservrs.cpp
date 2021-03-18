@@ -2,6 +2,7 @@
 #include "pservrs.hpp"
 
 #include <ossl/iores.hpp>
+#include "preqh.hpp"
 
 #include <string>
 #include <iostream>
@@ -63,15 +64,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		}
 		openSSLIO(conn, ssl) >> ([vs, ssl](auto conn){
 			SSL_set_accept_state(ssl);
-			conn->engine <<= http::Request::read(conn) >> ([=](http::SharedRequest reqwest){
-				vs->take(conn, reqwest, [=](auto resp){
-					auto wr = conn->writer();
-					resp.write(wr);
-					conn->engine <<= wr->eod() >> ([](){}|[](auto err){
-						std::cerr << "Failed to respond: " << err << "\n";
-					});
-				});
-			}|[](auto err){ std::cerr << "Read request error " << err.desc << "\n"; });
+			takeCareOfConnection(conn, vs);
 		}|[](auto err){ std::cerr << "Connection convert to SSL error " << err << "\n"; });
 	});
 	if(auto err = lir1.err()) return *err;
