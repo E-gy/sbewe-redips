@@ -1,6 +1,7 @@
 #include "rr.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 namespace redips::http {
 
