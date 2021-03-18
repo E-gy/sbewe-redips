@@ -6,6 +6,6 @@
 
 namespace redips::fiz {
 
-result<SListener, std::string> listenOnSecure(yasync::io::IOYengine*, const IPp& ipp, const HostMapper<yasync::io::ssl::SharedSSLContext>& hmap, virt::SServer);
+result<SListener, std::string> listenOnSecure(yasync::io::IOYengine*, const IPp&, const HostMapper<yasync::io::ssl::SharedSSLContext>& hmap, virt::SServer);
 
 }

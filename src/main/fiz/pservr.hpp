@@ -15,6 +15,6 @@ class IListener {
 
 using SListener = std::shared_ptr<IListener>;
 
-result<SListener, std::string> listenOn(yasync::io::IOYengine*, const IPp& ipp, virt::SServer);
+result<SListener, std::string> listenOn(yasync::io::IOYengine*, const IPp&, virt::SServer);
 
 }
