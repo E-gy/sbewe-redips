@@ -83,7 +83,6 @@ struct Response : public RR {
 	protected:
 		RRReadResult readTitle(const std::string&) override;
 		void writeTitle(const yasync::io::IORWriter&) override;
-		void writeFixHeaders() override;
 };
 
 }
