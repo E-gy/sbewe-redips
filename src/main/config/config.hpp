@@ -9,13 +9,9 @@
 #include <iostream>
 #include <util/result.hpp>
 #include <util/hostresolv.hpp>
+#include <util/ip.hpp>
 
 namespace redips::config {
-
-struct IPp {
-	std::string ip;
-	unsigned port;
-};
 
 struct TLS {
 	/// TLS certificate

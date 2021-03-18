@@ -2,9 +2,7 @@
 
 #include <algorithm>
 #include <sstream>
-#include <unordered_set>
 #include <util/json.hpp>
-#include <util/ip.hpp>
 #include <util/filetype.hpp>
 
 using nlohmann::json;
