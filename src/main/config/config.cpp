@@ -7,6 +7,17 @@
 
 using nlohmann::json;
 
+void to_json(json& j, const IPp& ip){
+	j["ip"] = ip.ip;
+	j["port"] = ip.port;
+}
+
+void from_json(const json& j, IPp& ip){
+	j.at("ip").get_to(ip.ip);
+	j.at("port").get_to(ip.port);
+	if(!isValidPort(ip.port)) throw json::type_error::create(301, "Port number out of bounds");
+}
+
 namespace redips::config {
 
 // helper type for the visitor
@@ -28,17 +39,6 @@ HostK VHost::tok(){
 void to_json(json& j, const T& t){}
 void from_json(const json& j, T& t){}
 */
-
-void to_json(json& j, const IPp& ip){
-	j["ip"] = ip.ip;
-	j["port"] = ip.port;
-}
-
-void from_json(const json& j, IPp& ip){
-	j.at("ip").get_to(ip.ip);
-	j.at("port").get_to(ip.port);
-	if(!isValidPort(ip.port)) throw json::type_error::create(301, "Port number out of bounds");
-}
 
 void to_json(json& j, const TLS& tls){
 	j["ssl_cert"] = tls.cert;
