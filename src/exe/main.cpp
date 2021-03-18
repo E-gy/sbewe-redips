@@ -98,6 +98,7 @@ int main(int argc, char* args[]){
 				interproc::extNotifyReady(argc, args);
 			} else for(auto li : *lists) li->shutdown();
 			yasync::blawait<void>(&engine, dun);
+			ioengine.wioe();
 		}
 		yasync::io::CtrlC::un(&engine);
 		engine.wle();
