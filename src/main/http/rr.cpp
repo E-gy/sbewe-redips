@@ -1,9 +1,6 @@
 #include "rr.hpp"
 
-#include <ctime>
-#include <iomanip>
 #include <algorithm>
-#include <cstring>
 
 namespace redips::http {
 
@@ -102,9 +99,7 @@ RRReadResult Request::readTitle(const std::string& l){
 		if(versionIsSupported(*v)) version = *v;
 		else return RRReadError(Status::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP version");
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
-	if(auto m = methodFromStr(ms))
-		if(methodIsSupported(*m)) method = *m;
-		else return RRReadError(Status::METHOD_NOT_ALLOWED, "Unsupported HTTP method");
+	if(auto m = methodFromStr(ms)) method = *m;
 	else return RRReadError(Status::BAD_REQUEST, "Invalid HTTP method");
 	path = ps;
 	return RRReadResult::Ok();
@@ -147,16 +142,6 @@ void Response::writeTitle(const yasync::io::IORWriter& w){
 
 void RR::writeFixHeaders(){
 	setHeader(Header::ContentLength, body.has_value() ? body.value().size() : 0);
-}
-void Response::writeFixHeaders(){
-	RR::writeFixHeaders();
-	{
-		auto t = std::time(nullptr);
-		auto tm = *std::gmtime(&t); //FIXME not thread-safe
-		setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
-	}
-	setHeader(Header::Host, "Redips");
-	setHeader(Header::Connection, "closed");
 }
 
 }

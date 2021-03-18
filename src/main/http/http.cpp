@@ -16,7 +16,7 @@ std::optional<Method> methodFromStr(const std::string& s){
 	if(s == "HEAD") return Method::HEAD;
 	if(s == "POST") return Method::POST;
 	if(s == "PUT") return Method::PUT;
-	// if(s == "DELETE") return Method::DELETE;
+	if(s == "DELETE") return Method::DELET;
 	if(s == "CONNECT") return Method::CONNECT;
 	if(s == "OPTIONS") return Method::OPTIONS;
 	if(s == "TRACE") return Method::TRACE;
