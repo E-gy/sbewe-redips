@@ -43,17 +43,17 @@ template<typename T> class OutsideFuture : public IFutureT<T> {
 	public:
 		OutsideFuture(){}
 		FutureState s = FutureState::Running;
-		FutureState state(){ return s; }
+		FutureState state() const override { return s; }
 		movonly<T> r;
-		movonly<T> result(){ return std::move(r); }
+		movonly<T> result() override { return std::move(r); }
 };
 
 template<> class OutsideFuture<void> : public IFutureT<void> {
 	public:
 		OutsideFuture(){}
 		FutureState s = FutureState::Running;
-		FutureState state(){ return s; }
-		movonly<void> result(){ return movonly<void>(); }
+		FutureState state() const override { return s; }
+		movonly<void> result() override { return movonly<void>(); }
 };
 
 template<typename T> Future<T> completed(const T& t){
@@ -76,8 +76,8 @@ template<typename T> class AggregateFuture : public IFutureT<std::vector<T>> {
 	public:
 		std::weak_ptr<AggregateFuture> slf;
 		AggregateFuture() = default;
-		FutureState state(){ return bal > 0 ? FutureState::Running : FutureState::Completed; }
-		movonly<std::vector<T>> result(){ return std::move(results); }
+		FutureState state() const override { return bal > 0 ? FutureState::Running : FutureState::Completed; }
+		movonly<std::vector<T>> result() override { return std::move(results); }
 		AggregateFuture& add(Yengine* engine, Future<T> f){
 			{
 				std::unique_lock lok(synch);
@@ -98,8 +98,8 @@ template<> class AggregateFuture<void> : public IFutureT<void> {
 	public:
 		std::weak_ptr<AggregateFuture> slf;
 		AggregateFuture() = default;
-		FutureState state(){ return bal > 0 ? FutureState::Running : FutureState::Completed; }
-		movonly<void> result(){ return movonly<void>(); }
+		FutureState state() const override { return bal > 0 ? FutureState::Running : FutureState::Completed; }
+		movonly<void> result() override { return movonly<void>(); }
 		AggregateFuture& add(Yengine* engine, Future<void> f){
 			{
 				std::unique_lock lok(synch);
@@ -118,18 +118,6 @@ template<typename T> std::shared_ptr<AggregateFuture<T>> aggregAll(){
 	f->slf = f;
 	return f;
 }
-
-template<typename T> Future<T> asyncSleep(Yengine* engine, unsigned ms, T ret){
-	std::shared_ptr<OutsideFuture<T>> f(new OutsideFuture<T>());
-	Daemons::launch([engine, ms](std::shared_ptr<OutsideFuture<T>> f, auto rt){
-		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-		f->s = FutureState::Completed;
-		f->r = std::move(rt);
-		engine->notify(f);
-	}, f, movonly<T>(new T(ret)));
-	return f;
-}
-Future<void> asyncSleep(Yengine* engine, unsigned ms);
 
 /**
  * Blocks current thread until completion of a future (for a generating future, until a result is produced) on the engine

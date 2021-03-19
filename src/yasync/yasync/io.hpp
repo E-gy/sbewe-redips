@@ -73,6 +73,13 @@ class IResource {
 		#else
 		IResource(){}
 		#endif
+		/**
+		 * Cancels current IO operation, asynchronously.
+		 * If there is no pending operation, this is no-op (therefor for any virtual resource, this is no-op).
+		 * Due to asynchronous nature of cancellation the "next"[ly requested] operation may get cancelled if there is no pending operation at the atomic instant of cancellation.
+		 * Implementations reserve the right to cancel underlying IO or simply detach at their discretion. 
+		 */
+		virtual void cancel() = 0;
 };
 
 class IAIOResource;

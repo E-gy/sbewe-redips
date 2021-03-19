@@ -39,10 +39,18 @@ class FileResource : public IAIOResource {
 	HandledResource res;
 	std::array<char, DEFAULT_BUFFER_SIZE> buffer;
 	std::shared_ptr<OutsideFuture<IOCompletionInfo>> engif;
-	void notify(IOCompletionInfo inf){
+	void notify(IOCompletionInfo inf) override {
 		engif->r = inf;
 		engif->s = FutureState::Completed;
 		engine->notify(engif);
+	}
+	void cancel() override {
+		#ifdef _WIN32
+		CancelIoEx(res->rh, overlapped());
+		// notify(IOCompletionInfo { FALSE, 0, ERROR_OPERATION_ABORTED });
+		#else
+		notify(EPOLLHUP);
+		#endif
 	}
 	#ifdef _WIN32
 	#else
@@ -95,14 +103,16 @@ class FileResource : public IAIOResource {
 				if(engif->s == FutureState::Completed){
 					engif->s = FutureState::Running;
 					IOCompletionInfo result = *engif->r;
-					if(!result.status){
-						if(result.lerr == ERROR_HANDLE_EOF){
+					if(!result.status) switch(result.lerr){
+						case ERROR_HANDLE_EOF:
 							done = true;
 							return ReadResult::Ok(data);
-						} else {
+						case ERROR_OPERATION_ABORTED:
+							done = true;
+							return ReadResult::Err("Operation cancelled (hang up on the other side, or cancellation requested)");
+						default:
 							done = true;
 							return retSysError<ReadResult>("Async Read failure", result.lerr);
-						}
 					} else {
 						if(result.transferred == 0){ //EOF on ECONNRESET
 							done = true;
@@ -163,6 +173,9 @@ class FileResource : public IAIOResource {
 							}
 							break;
 						}
+						case EPOLLHUP:
+							done = true;
+							return ReadResult::Err("Operation cancelled (hang up on the other side, or cancellation requested)");
 						case EPOLLPRI:
 						case EPOLLOUT: //NO! BAD EPOLL!
 						default: {
@@ -190,9 +203,13 @@ class FileResource : public IAIOResource {
 				if(engif->s == FutureState::Completed){
 					engif->s = FutureState::Running;
 					IOCompletionInfo result = *engif->r;
-					if(!result.status){
-						done = true;
-						return retSysError<WriteResult>("Async Write failed", result.lerr);
+					if(!result.status) switch(result.lerr){
+						case ERROR_OPERATION_ABORTED:
+							done = true;
+							return WriteResult::Err("Operation cancelled (hang up on the other side, or cancellation requested)");
+						default:
+							done = true;
+							return retSysError<WriteResult>("Async Write failed", result.lerr);
 					} else {
 						data.erase(data.begin(), data.begin()+result.transferred);
 						overlapped()->Offset += result.transferred;
@@ -240,6 +257,9 @@ class FileResource : public IAIOResource {
 							}
 							break;
 						}
+						case EPOLLHUP:
+							done = true;
+							return WriteResult::Err("Operation cancelled (hang up on the other side, or cancellation requested)");
 						case EPOLLPRI:
 						case EPOLLIN: //NO! BAD EPOLL!
 						default: {
