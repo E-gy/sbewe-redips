@@ -155,6 +155,7 @@ void from_json(const json& j, Upstream& u){
 	j.at("method").get_to(u.lbm);
 	j.at("hosts").get_to(u.hosts);
 	if(u.hosts.size() == 0) throw json::type_error::create(301, "Upstream must have at least one uphost");
+	if(u.lbm == LoadBalancingMethod::FailOver || u.lbm == LoadBalancingMethod::FailRobin) if(std::count_if(u.hosts.begin(), u.hosts.end(), [](auto uh){ return !uh.healthCheckUrl.has_value(); }) > 0) throw json::type_error::create(301, "Select load balancing method requires all hosts to specify health check URL");
 }
 
 void to_json(json& j, const Config& c){
