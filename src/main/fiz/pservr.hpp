@@ -3,6 +3,7 @@
 #include <yasync/io.hpp>
 #include <util/ip.hpp>
 #include <virt/vservr.hpp>
+#include "preqh.hpp"
 
 namespace redips::fiz {
 
@@ -15,6 +16,6 @@ class IListener {
 
 using SListener = std::shared_ptr<IListener>;
 
-result<SListener, std::string> listenOn(yasync::io::IOYengine*, const IPp&, virt::SServer);
+result<SListener, std::string> listenOn(yasync::io::IOYengine*, const IPp&, ConnectionCare*, virt::SServer);
 
 }

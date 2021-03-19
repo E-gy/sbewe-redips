@@ -2,7 +2,6 @@
 #include "pservrs.hpp"
 
 #include <ossl/iores.hpp>
-#include "preqh.hpp"
 
 #include <string>
 #include <iostream>
@@ -44,7 +43,7 @@ int handleSNI(SSL* ssl, int* al, void* listener){
 	return reinterpret_cast<P2VLSNIHandler*>(listener)->handleSNI(ssl, al);
 }
 
-template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const IPp& ipp, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
+template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const IPp& ipp, const HostMapper<SharedSSLContext>& hmap, ConnectionCare* cc, virt::SServer vs){
 	auto ar = yasync::io::NetworkedAddressInfo::find<SDomain, SType, SProto>(ipp.ip, ipp.portstr());
 	if(auto err = ar.err()) return *err;
 	auto acctxr = yasync::io::ssl::createSSLContext();
@@ -56,15 +55,15 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, []([[maybe_unused]] auto _, yasync::io::sysneterr_t err, const std::string& location){
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
-	}, [acctx, vs]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
+	}, [acctx, cc, vs]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
 		auto ssl = SSL_new(acctx->ctx());
 		if(!ssl){
 			std::cerr << "Failed to instantiate SSL\n";
 			return;
 		}
-		openSSLIO(conn, ssl) >> ([vs, ssl](auto conn){
+		openSSLIO(conn, ssl) >> ([cc, vs, ssl](auto conn){
 			SSL_set_accept_state(ssl);
-			takeCareOfConnection(conn, vs);
+			cc->takeCare(conn, vs);
 		}|[](auto err){ std::cerr << "Connection convert to SSL error " << err << "\n"; });
 	});
 	if(auto err = lir1.err()) return *err;
@@ -74,10 +73,10 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	return std::shared_ptr<IListener>(new P2VListener<decltype(listener)>(listener, *lir2.ok(), acctx, sniha));
 }
 
-result<SListener, std::string> listenOnSecure(yasync::io::IOYengine* e, const IPp& ipp, const HostMapper<SharedSSLContext>& hmap, virt::SServer vs){
+result<SListener, std::string> listenOnSecure(yasync::io::IOYengine* e, const IPp& ipp, const HostMapper<SharedSSLContext>& hmap, ConnectionCare* cc, virt::SServer vs){
 	if(!ipp.isValidPort()) return "Invalid port"s;
-	if(ipp.isValidIPv6()) return listenOnV<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(e, ipp, hmap, vs);
-	else if(ipp.isValidIPv4()) return listenOnV<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(e, ipp, hmap, vs);
+	if(ipp.isValidIPv6()) return listenOnV<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(e, ipp, hmap, cc, vs);
+	else if(ipp.isValidIPv4()) return listenOnV<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(e, ipp, hmap, cc, vs);
 	else return "Invalid address"s;
 }
 

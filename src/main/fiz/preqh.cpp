@@ -15,7 +15,7 @@ inline bool keepAlive(SharedRequest req){
 	return true;
 }
 
-void takeCareOfConnection(yasync::io::IOResource conn, virt::SServer vs){
+void ConnectionCare::takeCare(yasync::io::IOResource conn, virt::SServer vs){
 	conn->engine <<= Request::read(conn) >> ([=](SharedRequest reqwest){
 		const bool kal = keepAlive(reqwest);
 		vs->take(conn, reqwest, [=](auto resp){
@@ -29,7 +29,7 @@ void takeCareOfConnection(yasync::io::IOResource conn, virt::SServer vs){
 			resp.setHeader(Header::Connection, kal ? "keep-alive" : "closed");
 			resp.write(wr);
 			conn->engine <<= wr->eod() >> ([=](){
-				if(kal) takeCareOfConnection(conn, vs);
+				if(kal) takeCare(conn, vs);
 			}|[](auto err){
 				std::cerr << "Failed to respond: " << err << "\n";
 			});

@@ -62,6 +62,7 @@ int main(int argc, char* args[]){
 		auto timeToStahp = timeToStahpRes.ok();
 		{
 			yasync::io::IOYengine ioengine(&engine);
+			fiz::ConnectionCare conca;
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
 			//--
@@ -80,7 +81,7 @@ int main(int argc, char* args[]){
 			}
 			for(auto ent : terms){
 				if(!okay) break;
-				(sslctx.count(ent.first) > 0 ? fiz::listenOnSecure(&ioengine, ent.first, sslctx[ent.first], ent.second.build()) : fiz::listenOn(&ioengine, ent.first, ent.second.build())) >> ([&](fiz::SListener li){
+				(sslctx.count(ent.first) > 0 ? fiz::listenOnSecure(&ioengine, ent.first, sslctx[ent.first], &conca, ent.second.build()) : fiz::listenOn(&ioengine, ent.first, &conca, ent.second.build())) >> ([&](fiz::SListener li){
 					lists->push_back(li);
 					dun->add(&engine, li->onShutdown());
 				}|[&](auto err){
