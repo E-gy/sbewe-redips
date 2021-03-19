@@ -179,7 +179,8 @@ class SSLResource : public IAIOResource {
 				}
 			}, data));
 		}
-		void notify([[maybe_unused]] IOCompletionInfo inf) override {} //No-Op because we're a proxy :D
+		void notify(IOCompletionInfo) override {} //No-Op because we're a proxy :D
+		void cancel() override { raw->cancel(); }
 		static result<IOResource, std::string> openOn(IOResource raw, SSL* ssl){
 			auto sslres = std::make_shared<SSLResource>(raw, ssl);
 			auto bres = sslres->initBIO();
