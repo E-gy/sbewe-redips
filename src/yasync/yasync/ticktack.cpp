@@ -5,7 +5,7 @@
 
 namespace yasync {
 
-TickTack::TickTack() : stahp(std::make_shared<bool>(false)) {
+TickTack::TickTack() : stahp(std::make_shared<std::atomic_bool>(false)) {
 	Daemons::launch([this](){ threadwork(); });
 }
 
@@ -28,7 +28,7 @@ TickTack::Id TickTack::start(const TimePoint& t, const Duration& d, Callback && 
 }
 
 void TickTack::stop(Id id){
-	if(auto t = ([this, id]() -> std::optional<El> {
+	if(id) if(auto t = ([this, id]() -> std::optional<El> {
 		std::unique_lock lok(lock);
 		auto t = std::find_if(ent.begin(), ent.end(), [id](const El& el){ return el.id == id; });
 		if(t == ent.end()) return std::nullopt;

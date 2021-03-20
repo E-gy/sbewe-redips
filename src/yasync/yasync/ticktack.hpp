@@ -5,6 +5,7 @@
 #include <functional>
 #include <set>
 #include <chrono>
+#include <atomic>
 
 namespace yasync {
 
@@ -15,6 +16,7 @@ namespace yasync {
 class TickTack {
 	public:
 		using Id = unsigned long long;
+		static constexpr Id UnId = 0;
 		using Clock = std::chrono::steady_clock;
 		using TimePoint = std::chrono::time_point<Clock>;
 		using Duration = Clock::duration;
@@ -48,7 +50,7 @@ class TickTack {
 		};
 		std::mutex lock;
 		std::set<El> ent;
-		Id nid;
+		Id nid = UnId+1;
 	public:
 		TickTack();
 		/**
@@ -71,7 +73,7 @@ class TickTack {
 		 */
 		void stop(Id);
 	private:
-		std::shared_ptr<bool> stahp;
+		std::shared_ptr<std::atomic_bool> stahp;
 		std::condition_variable cvStahp;
 		void threadwork();
 };
