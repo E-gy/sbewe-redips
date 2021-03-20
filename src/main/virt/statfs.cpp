@@ -19,7 +19,7 @@ void StaticFileServer::take([[maybe_unused]] yasync::io::IOResource conn, redips
 	else if(getFileType(relp) == FileType::Directory) relp += FPATHSEP + deff;
 	if(getFileType(relp) != FileType::File) respb(http::Response(http::Status::NOT_FOUND, "File not found :("));
 	else {
-		yasync::io::fileOpenRead(engine, relp) >> ([=](auto f) mutable {
+		yasync::io::fileOpenRead(engine, relp) >> ([=](auto f){
 			engine->engine <<= (f->template read<std::vector<char>>()) >> ([=](auto ok){
 				respb(http::Response(http::Status::OK, ok));
 			}|[=](auto err){
