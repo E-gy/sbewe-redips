@@ -15,8 +15,29 @@ inline bool keepAlive(SharedRequest req){
 	return true;
 }
 
+void ConnectionCare::setIdle(yasync::io::IOResource conn){
+	std::unique_lock lok(idlok);
+	idle.insert(conn);
+}
+void ConnectionCare::unsetIdle(yasync::io::IOResource conn){
+	std::unique_lock lok(idlok);
+	idle.erase(conn);
+}
+
+void ConnectionCare::shutdown(){
+	sdown = true;
+	std::unordered_set<yasync::io::IOResource> ridle;
+	{
+		std::unique_lock lok(idlok);
+		std::swap(ridle, idle);
+	}
+	for(auto conn : ridle) conn->cancel();
+}
+
 void ConnectionCare::takeCare(yasync::io::IOResource conn, virt::SServer vs){
+	setIdle(conn);
 	conn->engine <<= Request::read(conn) >> ([=](SharedRequest reqwest){
+		unsetIdle(conn);
 		const bool kal = keepAlive(reqwest);
 		vs->take(conn, reqwest, [=](auto resp){
 			auto wr = conn->writer();
@@ -26,10 +47,10 @@ void ConnectionCare::takeCare(yasync::io::IOResource conn, virt::SServer vs){
 				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
 			}
 			resp.setHeader(Header::Host, "Redips");
-			resp.setHeader(Header::Connection, kal ? "keep-alive" : "closed");
+			resp.setHeader(Header::Connection, kal && !sdown ? "keep-alive" : "closed");
 			resp.write(wr);
 			conn->engine <<= wr->eod() >> ([=](){
-				if(kal) takeCare(conn, vs);
+				if(kal && !sdown) takeCare(conn, vs); //If shut down is initiated after keep-alive is sent, oh well. May as well close it now.
 			}|[](auto err){
 				std::cerr << "Failed to respond: " << err << "\n";
 			});
