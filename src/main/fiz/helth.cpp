@@ -20,7 +20,9 @@ struct Interim {
 	TickTack::Id t = TickTack::UnId;
 	TickTack::Id tM = TickTack::UnId;
 	TickTack::Id tD = TickTack::UnId;
+	TickTack::Id tEC = TickTack::UnId;
 	NetworkedAddressInfo addr;
+	std::shared_ptr<ConnectingSocket> econn;
 	IOResource conn;
 	http::Request req;
 	HealthMonitor::SAH sah;
@@ -33,10 +35,22 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 	auto shr = [=](Health h){
 		ticktack.stop(interim->tM);
 		ticktack.stop(interim->tD);
-		interim->tM = interim->tD = TickTack::UnId;
+		interim->tM = interim->tD = interim->tEC = TickTack::UnId;
 		sah->store(h);
 	};
 	auto conok = [=](){
+		std::cout << "Ping!\n";
+		if(interval/10 > MISSINGT && sah->load() == Health::Alive) interim->tM = ticktack.sleep(MISSINGT, [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
+		interim->tD = ticktack.sleep(interval/10, [interim](auto, bool cancel){
+			if(!cancel){
+				if(interim->conn){
+					std::cout << "Ping timeout\n";
+					interim->conn->cancel();
+					interim->conn.reset();
+				}
+				interim->sah->store(Health::Dead);
+			}
+		});
 		auto wr = interim->conn->writer();
 		interim->req.write(wr);
 		engine->engine <<= wr->eod() >> ([=](){
@@ -49,39 +63,47 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 			}|[=](auto err){
 				std::cerr << "Health check read error: " << err.desc << "\n";
 				interim->conn.reset();
+				std::cout << "Connection lost\n";
 				shr(Health::Dead);
 			});
 		}|[=](auto err){
 			std::cerr << "Health check send error: " << err << "\n";
 			interim->conn.reset();
+			std::cout << "Connection lost\n";
 			shr(Health::Dead);
 		});
 	};
 	interim->t = ticktack.start(TickTack::Clock::now(), interval, [=](auto, bool cancel){
 		if(!cancel){
-			if(interval/10 > MISSINGT && sah->load() == Health::Alive) interim->tM = ticktack.sleep(MISSINGT, [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
-			interim->tD = ticktack.sleep(interval/10, [interim](auto, bool cancel){
-				if(!cancel){
-					if(interim->conn){
-						interim->conn->cancel();
-						interim->conn.reset();
-					}
-					interim->sah->store(Health::Dead);
-				}
-			});
 			if(interim->conn) conok();
-			else netConnectTo<SDomain, SType, SProto, AddressInfo>(engine, &interim->addr) >> ([=](auto fconn){
-				engine->engine <<= fconn >> ([=](auto conn){
-					interim->conn = conn;
-					conok();
+			else {
+				std::cout << "Establishing connection...\n";
+				netConnectTo<SDomain, SType, SProto, AddressInfo>(engine, &interim->addr) >> ([=](auto econns){
+					interim->econn = econns;
+					interim->tEC = ticktack.sleep(interval/10, [=](auto, bool cancel){
+						if(!cancel){
+							std::cout << "Connection establish failed (timeout)\n";
+							if(interim->econn) interim->econn->cancel();
+							else interim->sah->store(Health::Dead);
+						} else if(interim->econn) interim->econn.reset();
+					});
+					engine->engine <<= econns->connest() >> ([=](auto conn){
+						std::cout << "Conn OK!\n";
+						ticktack.stop(interim->tEC);
+						interim->econn.reset();
+						interim->conn = conn;
+						conok();
+					}|[=](auto err){
+						std::cerr << "Healt check connection establish failed: " << err << "\n";
+						ticktack.stop(interim->tEC);
+						interim->econn.reset();
+						shr(Health::Dead);
+					});
 				}|[=](auto err){
 					std::cerr << "Healt check connection establish failed: " << err << "\n";
 					shr(Health::Dead);
 				});
-			}|[=](auto err){
-				std::cerr << "Healt check connection establish failed: " << err << "\n";
-				shr(Health::Dead);
-			});
+			}
 		}
 	});
 	return sah;
