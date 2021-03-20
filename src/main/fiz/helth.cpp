@@ -59,7 +59,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 	};
 	interim->t = ticktack.start(TickTack::Clock::now(), interval, [=](auto, bool cancel){
 		if(!cancel){
-			interim->tM = ticktack.sleep(std::chrono::milliseconds(500), [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
+			if(interval/5 >= MISSINGT) interim->tM = ticktack.sleep(MISSINGT, [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
 			interim->tD = ticktack.sleep(interval/10, [interim](auto, bool cancel){
 				if(!cancel){
 					if(interim->conn) interim->conn->cancel();

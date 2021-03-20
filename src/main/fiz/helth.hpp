@@ -40,6 +40,7 @@ class HealthMonitor {
 		HealthMonitor(yasync::io::IOYengine*, yasync::TickTack::Duration);
 		void shutdown();
 		using SAH = std::shared_ptr<std::atomic<Health>>;
+		static constexpr auto MISSINGT = std::chrono::milliseconds(500);
 		result<SAH, std::string> add(const IPp&, const std::string&);
 	private:
 		template<int SDomain, int SType, int SProto, typename AddressInfo> SAH _add(yasync::io::NetworkedAddressInfo &&, const std::string&);
