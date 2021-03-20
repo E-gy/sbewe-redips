@@ -39,17 +39,14 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 		sah->store(h);
 	};
 	auto conok = [=](){
-		std::cout << "Ping!\n";
 		if(interval/10 > MISSINGT && sah->load() == Health::Alive) interim->tM = ticktack.sleep(MISSINGT, [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
 		interim->tD = ticktack.sleep(interval/10, [interim](auto, bool cancel){
 			if(!cancel){
-				if(interim->conn){
-					std::cout << "Ping timeout\n";
-					interim->conn->cancel();
-					interim->conn.reset();
-				}
-				interim->sah->store(Health::Dead);
+				if(interim->conn) interim->conn->cancel();
+				else interim->sah->store(Health::Dead);
 			}
+			//FIXME Okay. If the shutdown is initiated after request is emitted and before timeout and if the enpoint stops responding - everything will get blocked until the endpoint closes the connection, or responds
+			//The cancel here is not indicative of shutdown vs cancellation on success therefor we can't simply cancel/reset interim.conn, unless we are to re-establish it every ping.
 		});
 		auto wr = interim->conn->writer();
 		interim->req.write(wr);
@@ -63,13 +60,11 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 			}|[=](auto err){
 				std::cerr << "Health check read error: " << err.desc << "\n";
 				interim->conn.reset();
-				std::cout << "Connection lost\n";
 				shr(Health::Dead);
 			});
 		}|[=](auto err){
 			std::cerr << "Health check send error: " << err << "\n";
 			interim->conn.reset();
-			std::cout << "Connection lost\n";
 			shr(Health::Dead);
 		});
 	};
@@ -77,18 +72,15 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 		if(!cancel){
 			if(interim->conn) conok();
 			else {
-				std::cout << "Establishing connection...\n";
 				netConnectTo<SDomain, SType, SProto, AddressInfo>(engine, &interim->addr) >> ([=](auto econns){
 					interim->econn = econns;
 					interim->tEC = ticktack.sleep(interval/10, [=](auto, bool cancel){
 						if(!cancel){
-							std::cout << "Connection establish failed (timeout)\n";
 							if(interim->econn) interim->econn->cancel();
 							else interim->sah->store(Health::Dead);
 						} else if(interim->econn) interim->econn.reset();
 					});
 					engine->engine <<= econns->connest() >> ([=](auto conn){
-						std::cout << "Conn OK!\n";
 						ticktack.stop(interim->tEC);
 						interim->econn.reset();
 						interim->conn = conn;
