@@ -99,6 +99,8 @@ int main(int argc, char* args[]){
 				interproc::extNotifyReady(argc, args);
 			} else for(auto li : *lists) li->shutdown();
 			yasync::blawait<void>(&engine, dun);
+			std::cout << "Closing idle connections\n";
+			conca.shutdown();
 			ioengine.wioe();
 		}
 		yasync::io::CtrlC::un(&engine);
