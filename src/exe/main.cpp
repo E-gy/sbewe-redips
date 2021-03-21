@@ -106,9 +106,6 @@ int main(int argc, char* args[]){
 		yasync::io::CtrlC::un(&engine);
 		engine.wle();
 	}
-	std::cout << "slaying d~~a~~emons\n";
-	Daemons::waitForEveryoneToStop();
-	std::this_thread::sleep_for(std::chrono::milliseconds(5)); //HacKeRmANn
 	return 0;
 }
 
