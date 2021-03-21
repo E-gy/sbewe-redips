@@ -25,7 +25,7 @@ constexpr auto ERRPREF = "An Error Occured: ";
 SCENARIO("SSL Hanshake Simulator", "[ssl][io][yasync]"){
 	SSLStateControl _ssl;
 	{
-		Yengine engine(GENERATE(1)); //FIXME! more threads simply doesn't work :/
+		Yengine engine(GENERATE(1, 2, 4));
 		{
 			auto sctx = createSSLContext("./crt/server.crt", "./crt/server.key") >> ([](auto ctx){ return ctx; }|[](auto err) -> SharedSSLContext { throw std::runtime_error(err); });
 			auto cctx = createSSLContext("./crt/client.crt", "./crt/client.key") >> ([](auto ctx){ return ctx; }|[](auto err) -> SharedSSLContext { throw std::runtime_error(err); });
