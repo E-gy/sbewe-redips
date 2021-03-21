@@ -82,7 +82,6 @@ SCENARIO("SSL Hanshake Simulator", "[ssl][io][yasync]"){
 		}
 		engine.wle();
 	}
-	Daemons::waitForEveryoneToStop();
 }
 
 }

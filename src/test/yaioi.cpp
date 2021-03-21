@@ -35,5 +35,4 @@ SCENARIO("ioi until EOF", "[io][yasync]"){
 		}
 		engine.wle();
 	}
-	Daemons::waitForEveryoneToStop();
 }
