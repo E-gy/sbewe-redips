@@ -62,7 +62,7 @@ class SSLResource : public IAIOResource {
 		 */
 		result<bool, std::string> handleReadCompleted(){
 			if(!rip) return result<bool, std::string>::Err("Lol no");
-			auto rres = *((*rip)->result());
+			auto rres = *rip->result();
 			rip = std::nullopt;
 			if(auto err = rres.err()) return result<bool, std::string>::Err(*err);
 			//Transfer available data to SSL
@@ -91,7 +91,7 @@ class SSLResource : public IAIOResource {
 					}
 				}
 				if(wip){
-					auto rres = *((*wip)->result());
+					auto rres = *wip->result();
 					wip = std::nullopt;
 					if(auto err = rres.err()){
 						done = true;
@@ -147,7 +147,7 @@ class SSLResource : public IAIOResource {
 					}
 				}
 				if(wip){
-					auto rres = *((*wip)->result());
+					auto rres = *wip->result();
 					wip = std::nullopt;
 					if(auto err = rres.err()){
 						done = true;
