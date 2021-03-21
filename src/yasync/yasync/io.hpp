@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <string>
 
 #include "future.hpp"
@@ -223,8 +224,8 @@ template<typename PatIt> Future<IAIOResource::ReadResult> IAIOResource::read_(co
 		if(done) return IAIOResource::ReadResult::Err("Result already submitted!");
 		if(awao){
 			auto gmd = *awao;
-			if(gmd->state() == FutureState::Completed){
-				auto res = gmd->result();
+			if(gmd.state() == FutureState::Completed){
+				auto res = gmd.result();
 				if(auto err = res->err()){
 					done = true;
 					return IAIOResource::ReadResult::Err(*err);
@@ -243,7 +244,7 @@ template<typename PatIt> Future<IAIOResource::ReadResult> IAIOResource::read_(co
 			for(; j < readbuff.size() && pat != pattern.end(); j++, pat++) if(readbuff[j] != *pat) break;
 			if(pat == pattern.end()){
 				done = true;
-				return *read<std::vector<char>>(j)->result();
+				return *read<std::vector<char>>(j).result();
 			}
 		}
 		auto gmd = _read(1);
@@ -302,10 +303,11 @@ class IOYengine {
 		unsigned tickets = 0;
 		void iothreadwork();
 		#ifdef _WIN32
-		static constexpr unsigned ioThreads = 1; //IO events are dispatched by notification to the engine
 		#else
 		SharedResource cfdStopSend, cfdStopReceive;
 		#endif
+		static constexpr unsigned ioThreads = 1; //IO events are dispatched by notification to the engine
+		std::array<std::thread, ioThreads> workers;
 };
 
 using FileOpenResult = result<IOResource, std::string>;

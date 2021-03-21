@@ -1,77 +1,52 @@
 #pragma once
 
-#include <memory>
-#include "captrace.hpp"
-#include <ostream>
+#include "agen.hpp"
+#include "anot.hpp"
 
 namespace yasync {
 
-enum class FutureState : unsigned int {
-	Suspended, Queued, Running, Awaiting, Completed, Cancelled
-};
-std::ostream& operator<<(std::ostream& os, const FutureState& state);
+inline AFuture::AFuture(AGenf f) : variant(f) {}
+inline AFuture::AFuture(ANotf f) : variant(f) {}
+template<typename T> inline AFuture::AFuture(Future<T> f) : variant(f.visit(overloaded {
+	[](const Genf<T>& f){ return Variant(std::static_pointer_cast<IGenf>(f)); },
+	[](const Notf<T>& f){ return Variant(std::static_pointer_cast<INotf>(f)); },
+})) {}
+inline bool AFuture::operator==(const AFuture& other) const { return variant == other.variant; }
+inline const AGenf* AFuture::genf() const { return std::get_if<AGenf>(&variant); }
+inline const ANotf* AFuture::notf() const { return std::get_if<ANotf>(&variant); }
+inline AGenf* AFuture::genf(){ return std::get_if<AGenf>(&variant); }
+inline ANotf* AFuture::notf(){ return std::get_if<ANotf>(&variant); }
+template<typename Visitor> inline decltype(auto) AFuture::visit(Visitor && v) const { return std::visit(v, variant); }
+template<typename Visitor> inline decltype(auto) AFuture::visit(Visitor && v){ return std::visit(v, variant); }
+inline FutureState AFuture::state() const {
+	return std::visit(overloaded {
+		[](const AGenf& f){ return f->state(); },
+		[](const ANotf& f){ return f->state(); },
+	}, variant);
+}
 
-class IFuture {
-	public:
-		/**
-		 * Acquires the state of the future.
-		 * Most states are "reserved" for internal use - linked to the generator's state.
-		 * The 2 that aren't, and only ones that actually make sense for any non-engine future are `Running` and `Completed`.
-		 * 
-		 * @returns current state of the future
-		 */
-		virtual FutureState state() const = 0;
-		/**
-		 * Called by the engine when [right before] the future is queued
-		 */
-		virtual void onQueued(){};
-		TraceCapture trace;
-		#ifdef _DEBUG
-		virtual bool isExternal();
-		#endif
-};
-
-// template<typename T> using movonly = std::unique_ptr<T>;
-
-template<typename T> class movonly {
-	std::unique_ptr<T> t;
-	public:
-		movonly() : t() {}
-		movonly(T* pt) : t(pt) {}
-		movonly(const T& vt) : t(new T(vt)) {} 
-		movonly(T && vt) : t(new T(std::move(vt))) {}
-		~movonly() = default;
-		movonly(movonly && mov) noexcept { t = std::move(mov.t); }
-		movonly& operator=(movonly && mov) noexcept { t = std::move(mov.t); return *this; }
-		//no copy
-		movonly(const movonly& cpy) = delete;
-		movonly& operator=(const movonly& cpy) = delete;
-		auto operator*(){ return std::move(t.operator*()); }
-		auto operator->(){ return t.operator->(); }
-};
-template<> class movonly<void> {
-	std::unique_ptr<void*> t;
-	public:
-		movonly(){}
-		~movonly() = default;
-		movonly(movonly &&) noexcept {}
-		movonly& operator=(movonly &&) noexcept { return *this; }
-		//no copy (still, yeah!)
-		movonly(const movonly& cpy) = delete;
-		movonly& operator=(const movonly& cpy) = delete;
-};
-
-template<typename T> class IFutureT : public IFuture {
-	public:
-		/**
-		 * Takes the result from the future.
-		 * May return <nothing> if the future is in invalid state
-		 * @returns @produces
-		 */
-		virtual movonly<T> result() = 0;
-};
-
-using AFuture = std::shared_ptr<IFuture>;
-template<typename T> using Future = std::shared_ptr<IFutureT<T>>;
+template<typename T> inline Future<T>::Future(Genf<T> f) : variant(f) {}
+template<typename T> inline Future<T>::Future(Notf<T> f) : variant(f) {}
+template<typename T> template<typename V> inline Future<T>::Future(const std::shared_ptr<V>& f, const IGenfT<T>&) : variant(std::static_pointer_cast<IGenfT<T>>(f)) {}
+template<typename T> template<typename V> inline Future<T>::Future(const std::shared_ptr<V>& f, const INotfT<T>&) : variant(std::static_pointer_cast<INotfT<T>>(f)) {}
+template<typename T> inline bool Future<T>::operator==(const Future& other) const { return variant == other.variant; }
+template<typename T> inline const Genf<T>* Future<T>::genf() const { return std::get_if<Genf<T>>(&variant); }
+template<typename T> inline const Notf<T>* Future<T>::notf() const { return std::get_if<Notf<T>>(&variant); }
+template<typename T> inline Genf<T>* Future<T>::genf(){ return std::get_if<Genf<T>>(&variant); }
+template<typename T> inline Notf<T>* Future<T>::notf(){ return std::get_if<Notf<T>>(&variant); }
+template<typename T> template<typename Visitor> inline decltype(auto) Future<T>::visit(Visitor && v) const { return std::visit(v, variant); }
+template<typename T> template<typename Visitor> inline decltype(auto) Future<T>::visit(Visitor && v){ return std::visit(v, variant); }
+template<typename T> inline FutureState Future<T>::state() const {
+	return visit(overloaded {
+		[](const Genf<T>& f){ return f->state(); },
+		[](const Notf<T>& f){ return f->state(); },
+	});
+}
+template<typename T> inline movonly<T> Future<T>::result(){
+	return visit(overloaded {
+		[](Genf<T>& f){ return std::move(f->result()); },
+		[](Notf<T>& f){ return std::move(f->result()); },
+	});
+}
 
 }
