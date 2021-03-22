@@ -77,7 +77,7 @@ struct Request : public RR {
 struct Response : public RR {
 	Status status;
 	Response() = default;
-	Response(Status);
+	explicit Response(Status);
 	template<typename T> Response(Status s, const T& body) : Response(s) { setBody(body); }
 	static yasync::Future<result<SharedResponse, RRReadError>> read(yasync::io::IOResource);
 	protected:
