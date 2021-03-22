@@ -15,7 +15,8 @@ class ProxyingServer : public IServer {
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
 			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
-			engine <<= cf() >> ([=](auto conn){
+			engine <<= cf() >> ([=](auto pair){
+				auto conn = pair.first;
 				auto wr = conn->writer();
 				rr->write(wr);
 				return wr->eod() >> ([=](){ return http::RRaw::read(conn); }|[=](auto err){
@@ -47,7 +48,8 @@ class PooledProxyingServer : public IServer {
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
 			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
-			engine <<= cf() >> ([=](auto conn){
+			engine <<= cf() >> ([=](auto pair){
+				auto conn = pair.first;
 				auto wr = conn->writer();
 				rr->write(wr);
 				engine <<= wr->eod() >> ([=](){ return http::RRaw::read(conn); }|[=](auto err){

@@ -4,10 +4,12 @@
 #include "vservr.hpp"
 #include <functional>
 #include <iostream>
+#include <util/ip.hpp>
 
 namespace redips::virt {
 
-using ProxyConnectionFactory = std::function<yasync::Future<yasync::io::ConnectionResult>()>;
+using ProxyConnectionFactoryResult = result<std::pair<yasync::io::IOResource, IPp>, std::string>;
+using ProxyConnectionFactory = std::function<yasync::Future<ProxyConnectionFactoryResult>()>;
 using ProxyConnectionUnfactory = std::function<void(yasync::io::ConnectionResult)>;
 
 SServer proxyTo(yasync::Yengine*, ProxyConnectionFactory &&, unsigned retries = 0);
