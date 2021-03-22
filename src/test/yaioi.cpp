@@ -13,7 +13,7 @@ using namespace yasync::io;
 
 SCENARIO("ioi until EOF", "[io][yasync]"){
 	{
-		Yengine engine(GENERATE(1)); //FIXME! more threads is inconsistent
+		Yengine engine(GENERATE(1, 2, 4));
 		{
 			auto ioi = ioi2Way(&engine);
 			GIVEN("an IOI"){
