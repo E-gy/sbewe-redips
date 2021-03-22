@@ -28,7 +28,7 @@ class BasicAuther : public IServer {
 		}
 };
 
-SServer putBehindBasicAuth(const std::string& realm, const std::vector<std::string>& credentials, SServer protege, bool proxh = false){
+SServer putBehindBasicAuth(const std::string& realm, const std::vector<std::string>& credentials, SServer protege, bool proxh){
 	return SServer(new BasicAuther(realm, std::unordered_set<std::string>(credentials.begin(), credentials.end()), protege, proxh));
 }
 
