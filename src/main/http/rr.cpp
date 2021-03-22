@@ -91,7 +91,7 @@ RRReadResult RR::readHeaders(const std::string& s){
 	return RRReadResult::Ok();
 }
 
-void RR::writeHeaders(const yasync::io::IORWriter& w) const {
+void RR::writeHeaders(std::ostream& w) const {
 	w << headerGetStr(Header::ContentLength) << HSEP << (body.has_value() ? body.value().size() : 0) << CRLF;
 	for(auto h : headers) if(h.first != headerGetStr(Header::ContentLength)) w << h.first << HSEP << h.second << CRLF;
 }
@@ -132,16 +132,17 @@ RRReadResult Response::readTitle(const std::string& l){
 }
 
 void RR::write(const yasync::io::IORWriter& w) const {
-	writeTitle(w);
-	writeHeaders(w);
-	w << CRLF;
+	std::ostringstream os;
+	writeTitle(os);
+	writeHeaders(os);
+	w << os << CRLF;
 	if(body.has_value()) w->write(body.value());
 }
 
-void Request::writeTitle(const yasync::io::IORWriter& w) const {
+void Request::writeTitle(std::ostream& w) const {
 	w << methodGetStr(method) << SP << path << SP << versionGetStr(version) << CRLF;
 }
-void Response::writeTitle(const yasync::io::IORWriter& w) const {
+void Response::writeTitle(std::ostream& w) const {
 	w << versionGetStr(version) << SP << statusGetCode(status) << SP << statusGetMessage(status) << CRLF;
 }
 

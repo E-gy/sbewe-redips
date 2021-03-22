@@ -51,13 +51,12 @@ struct RR {
 	template<typename T> void setBody(const T& dr){ setBody(dr.begin(), dr.end()); }
 	void setBody(const char*);
 	//IO
+	virtual RRReadResult readTitle(const std::string&) = 0;
+	virtual void writeTitle(std::ostream&) const = 0;
 	RRReadResult readHeaders(const std::string&);
-	void writeHeaders(const yasync::io::IORWriter&) const;
+	void writeHeaders(std::ostream&) const;
 	void write(const yasync::io::IORWriter&) const;
 	static yasync::Future<RRReadResult> read(SharedRR, yasync::io::IOResource);
-	protected:
-		virtual RRReadResult readTitle(const std::string&) = 0;
-		virtual void writeTitle(const yasync::io::IORWriter&) const = 0;
 };
 
 template<> void RR::setBody<std::vector<char>>(const std::vector<char>& data);
@@ -69,9 +68,8 @@ struct Request : public RR {
 	Request(Method, std::string path);
 	template<typename T> Request(Method m, std::string path, const T& body) : Request(m, path) { setBody(body); }
 	static yasync::Future<result<SharedRequest, RRReadError>> read(yasync::io::IOResource);
-	protected:
-		RRReadResult readTitle(const std::string&) override;
-		void writeTitle(const yasync::io::IORWriter&) const override;
+	RRReadResult readTitle(const std::string&) override;
+	void writeTitle(std::ostream&) const override;
 };
 
 struct Response : public RR {
@@ -80,9 +78,8 @@ struct Response : public RR {
 	explicit Response(Status);
 	template<typename T> Response(Status s, const T& body) : Response(s) { setBody(body); }
 	static yasync::Future<result<SharedResponse, RRReadError>> read(yasync::io::IOResource);
-	protected:
-		RRReadResult readTitle(const std::string&) override;
-		void writeTitle(const yasync::io::IORWriter&) const override;
+	RRReadResult readTitle(const std::string&) override;
+	void writeTitle(std::ostream&) const override;
 };
 
 }
