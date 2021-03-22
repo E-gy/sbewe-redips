@@ -70,7 +70,7 @@ HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::
 		if(!cancel){
 			if(interim->conn) conok();
 			else engine->engine <<= interim->estconn() >> ([=](auto conn){
-				interim->conn = conn;
+				interim->conn = conn.first;
 				conok();
 			}|[=](auto err){
 				std::cerr << "Health check connection establish failed: " << err << "\n";
