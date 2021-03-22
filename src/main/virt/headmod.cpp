@@ -6,7 +6,7 @@ using namespace magikop;
 using namespace redips::http;
 
 void headMod(RR& rr, const HeadMod& mod){
-	for(auto rem : mod.remove) rr.headers.erase(rem);
+	for(auto rem : mod.remove) rr.removeHeader(rem);
 	for(auto ren : mod.rename){
 		auto h = rr.headers.find(ren.first);
 		if(h != rr.headers.end()){
