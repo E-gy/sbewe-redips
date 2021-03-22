@@ -51,13 +51,13 @@ struct RR {
 	template<typename T> void setBody(const T& dr){ setBody(dr.begin(), dr.end()); }
 	void setBody(const char*);
 	//IO
-	void write(const yasync::io::IORWriter&);
+	RRReadResult readHeaders(const std::string&);
+	void writeHeaders(const yasync::io::IORWriter&) const;
+	void write(const yasync::io::IORWriter&) const;
 	static yasync::Future<RRReadResult> read(SharedRR, yasync::io::IOResource);
 	protected:
 		virtual RRReadResult readTitle(const std::string&) = 0;
-		RRReadResult readHeaders(const std::string&);
-		virtual void writeTitle(const yasync::io::IORWriter&) = 0;
-		virtual void writeFixHeaders();
+		virtual void writeTitle(const yasync::io::IORWriter&) const = 0;
 };
 
 template<> void RR::setBody<std::vector<char>>(const std::vector<char>& data);
@@ -71,7 +71,7 @@ struct Request : public RR {
 	static yasync::Future<result<SharedRequest, RRReadError>> read(yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
-		void writeTitle(const yasync::io::IORWriter&) override;
+		void writeTitle(const yasync::io::IORWriter&) const override;
 };
 
 struct Response : public RR {
@@ -82,7 +82,7 @@ struct Response : public RR {
 	static yasync::Future<result<SharedResponse, RRReadError>> read(yasync::io::IOResource);
 	protected:
 		RRReadResult readTitle(const std::string&) override;
-		void writeTitle(const yasync::io::IORWriter&) override;
+		void writeTitle(const yasync::io::IORWriter&) const override;
 };
 
 }

@@ -91,6 +91,11 @@ RRReadResult RR::readHeaders(const std::string& s){
 	return RRReadResult::Ok();
 }
 
+void RR::writeHeaders(const yasync::io::IORWriter& w) const {
+	w << headerGetStr(Header::ContentLength) << HSEP << (body.has_value() ? body.value().size() : 0) << CRLF;
+	for(auto h : headers) if(h.first != headerGetStr(Header::ContentLength)) w << h.first << HSEP << h.second << CRLF;
+}
+
 RRReadResult Request::readTitle(const std::string& l){
 	if(std::count(l.begin(), l.end(), SP) != 2) return RRReadError(Status::BAD_REQUEST, "Malformed title");
 	std::istringstream s(l);
@@ -126,23 +131,18 @@ RRReadResult Response::readTitle(const std::string& l){
 	return RRReadResult::Ok();
 }
 
-void RR::write(const yasync::io::IORWriter& w){
+void RR::write(const yasync::io::IORWriter& w) const {
 	writeTitle(w);
-	writeFixHeaders();
-	for(auto h : headers) w << h.first << HSEP << h.second << CRLF;
+	writeHeaders(w);
 	w << CRLF;
 	if(body.has_value()) w->write(body.value());
 }
 
-void Request::writeTitle(const yasync::io::IORWriter& w){
+void Request::writeTitle(const yasync::io::IORWriter& w) const {
 	w << methodGetStr(method) << SP << path << SP << versionGetStr(version) << CRLF;
 }
-void Response::writeTitle(const yasync::io::IORWriter& w){
+void Response::writeTitle(const yasync::io::IORWriter& w) const {
 	w << versionGetStr(version) << SP << statusGetCode(status) << SP << statusGetMessage(status) << CRLF;
-}
-
-void RR::writeFixHeaders(){
-	setHeader(Header::ContentLength, body.has_value() ? body.value().size() : 0);
 }
 
 }
