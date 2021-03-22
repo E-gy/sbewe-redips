@@ -62,7 +62,7 @@ class SSLResource : public IAIOResource {
 		 */
 		result<bool, std::string> handleReadCompleted(){
 			if(!rip) return result<bool, std::string>::Err("Lol no");
-			auto rres = *rip->result();
+			auto rres = rip->result();
 			rip = std::nullopt;
 			if(auto err = rres.err()) return result<bool, std::string>::Err(*err);
 			//Transfer available data to SSL
@@ -77,7 +77,7 @@ class SSLResource : public IAIOResource {
 		/// Queries raw to read next chunk, puts the future in rip and returns it
 		inline auto justReadAlready(){ return *(rip = engine <<= raw->_read(1)); }
 		Future<ReadResult> _read(size_t bytes) override {
-			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> std::variant<AFuture, movonly<ReadResult>> {
+			return defer(lambdagen([this, self = slf.lock(), bytes]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& resd) -> Generesume<ReadResult> {
 				if(done) return ReadResult::Ok(resd);
 				if(rip){
 					auto rres = handleReadCompleted();
@@ -91,7 +91,7 @@ class SSLResource : public IAIOResource {
 					}
 				}
 				if(wip){
-					auto rres = *wip->result();
+					auto rres = wip->result();
 					wip = std::nullopt;
 					if(auto err = rres.err()){
 						done = true;
@@ -133,7 +133,7 @@ class SSLResource : public IAIOResource {
 			}, std::vector<char>()));
 		}
 		Future<WriteResult> _write(std::vector<char>&& data) override {
-			return defer(lambdagen([this, self = slf.lock()]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& wrb) -> std::variant<AFuture, movonly<WriteResult>> {
+			return defer(lambdagen([this, self = slf.lock()]([[maybe_unused]] const Yengine* _engine, bool& done, std::vector<char>& wrb) -> Generesume<WriteResult> {
 				if(done) return WriteResult::Ok();
 				if(rip){
 					auto rres = handleReadCompleted();
@@ -147,7 +147,7 @@ class SSLResource : public IAIOResource {
 					}
 				}
 				if(wip){
-					auto rres = *wip->result();
+					auto rres = wip->result();
 					wip = std::nullopt;
 					if(auto err = rres.err()){
 						done = true;
