@@ -139,7 +139,7 @@ int main(int argc, char* args[]){
 					[&](const config::Proxy& prox){ return std::visit(overloaded {
 						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, estconntimeout).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 2); }); },
 						[&](const std::string& u) -> result<virt::SServer, std::string> { return ups[u]; }
-					}, prox.upstream).mapOk([&](auto stack){ return virt::modifyHeaders2(prox.fwdMod, prox.bwdMod, stack); }); }
+					}, prox.upstream).mapOk([&](auto stack){ return virt::modifyHeaders2(HeadMod{}.rem(http::headerGetStr(http::Header::Host)), HeadMod{}, virt::modifyHeaders2(prox.fwdMod, prox.bwdMod, stack)); }); }
 				}, vhost.mode);
 				if(auto err = stackr.err()){
 					std::cerr << "Error initializing stack: " << *err << "\n";
