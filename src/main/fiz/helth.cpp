@@ -20,14 +20,14 @@ struct Interim {
 	TickTack::Id t = TickTack::UnId;
 	TickTack::Id tM = TickTack::UnId;
 	TickTack::Id tD = TickTack::UnId;
-	estconn::EstConner estconn;
+	ConnectionFactory estconn;
 	IOResource conn;
 	http::Request req;
 	HealthMonitor::SAH sah;
-	Interim(estconn::EstConner && e, const std::string& path, HealthMonitor::SAH s) : estconn(std::move(e)), req(http::Method::GET, path), sah(s) {}
+	Interim(ConnectionFactory && e, const std::string& path, HealthMonitor::SAH s) : estconn(std::move(e)), req(http::Method::GET, path), sah(s) {}
 };
 
-HealthMonitor::SAH HealthMonitor::_add(estconn::EstConner && estconn, const std::string& path){
+HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::string& path){
 	const auto sah = std::make_shared<std::atomic<Health>>(Health::Missing);
 	const auto interim = std::make_shared<Interim>(std::move(estconn), path, sah);
 	auto shr = [=](Health h){
@@ -82,7 +82,7 @@ HealthMonitor::SAH HealthMonitor::_add(estconn::EstConner && estconn, const std:
 }
 
 result<HealthMonitor::SAH, std::string> HealthMonitor::add(const IPp& ipp, const std::string& path){
-	return estconn::findEstConner(ipp, engine, &ticktack, interval/10) >> ([=](auto estconn) -> result<HealthMonitor::SAH, std::string> {
+	return findConnectionFactory(ipp, engine, &ticktack, interval/10) >> ([=](auto estconn) -> result<HealthMonitor::SAH, std::string> {
 		return _add(std::move(estconn), path);
 	}|[=](auto err) -> result<HealthMonitor::SAH, std::string> {
 		return err;

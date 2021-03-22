@@ -44,7 +44,7 @@ class HealthMonitor {
 		static constexpr auto MISSINGT = std::chrono::milliseconds(500);
 		result<SAH, std::string> add(const IPp&, const std::string&);
 	private:
-		SAH _add(estconn::EstConner &&, const std::string&);
+		SAH _add(ConnectionFactory &&, const std::string&);
 	// 	struct ISAH {
 	// 		IPp addr;
 	// 		std::string path;

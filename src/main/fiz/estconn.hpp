@@ -5,16 +5,16 @@
 #include <util/ip.hpp>
 #include <functional>
 
-namespace redips::fiz::estconn {
+namespace redips::fiz {
 
 using namespace magikop;
 
-using EstConner = std::function<yasync::Future<yasync::io::ConnectionResult>()>;
+using ConnectionFactory = std::function<yasync::Future<yasync::io::ConnectionResult>()>;
 
 /**
  * @returns () → Future<ConnectionResult>
  */
-template<int SDomain, int SType, int SProto, typename AddressInfo> auto estConner(yasync::io::NetworkedAddressInfo && addr, yasync::io::IOYengine* engine, yasync::TickTack* ticktack, const yasync::TickTack::Duration& timeout){
+template<int SDomain, int SType, int SProto, typename AddressInfo> auto createConnectionFactory(yasync::io::NetworkedAddressInfo && addr, yasync::io::IOYengine* engine, yasync::TickTack* ticktack, const yasync::TickTack::Duration& timeout){
 	return [addr = std::make_shared<yasync::io::NetworkedAddressInfo>(std::move(addr)), engine, ticktack, timeout](){
 		return yasync::io::netConnectTo<SDomain, SType, SProto, AddressInfo>(engine, addr.get()) >> ([=](auto econns){
 			auto tEC = ticktack->sleep(timeout, [=](auto, bool cancel){ if(!cancel) econns->cancel(); });
@@ -28,6 +28,6 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> auto estConne
 	};
 }
 
-result<EstConner, std::string> findEstConner(const IPp& ipp, yasync::io::IOYengine* engine, yasync::TickTack* ticktack, const yasync::TickTack::Duration& timeout);
+result<ConnectionFactory, std::string> findConnectionFactory(const IPp& ipp, yasync::io::IOYengine* engine, yasync::TickTack* ticktack, const yasync::TickTack::Duration& timeout);
 
 }
