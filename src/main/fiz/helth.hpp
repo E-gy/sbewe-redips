@@ -4,6 +4,7 @@
 #include <yasync/ticktack.hpp>
 #include <util/ip.hpp>
 #include <ostream>
+#include "estconn.hpp"
 
 namespace redips::fiz {
 
@@ -43,8 +44,7 @@ class HealthMonitor {
 		static constexpr auto MISSINGT = std::chrono::milliseconds(500);
 		result<SAH, std::string> add(const IPp&, const std::string&);
 	private:
-		template<int SDomain, int SType, int SProto, typename AddressInfo> SAH _add(yasync::io::NetworkedAddressInfo &&, const std::string&);
-		template<int SDomain, int SType, int SProto, typename AddressInfo> result<SAH, std::string> _findadd(const IPp&, const std::string&);
+		SAH _add(estconn::EstConner &&, const std::string&);
 	// 	struct ISAH {
 	// 		IPp addr;
 	// 		std::string path;

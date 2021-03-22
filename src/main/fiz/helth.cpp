@@ -20,22 +20,20 @@ struct Interim {
 	TickTack::Id t = TickTack::UnId;
 	TickTack::Id tM = TickTack::UnId;
 	TickTack::Id tD = TickTack::UnId;
-	TickTack::Id tEC = TickTack::UnId;
-	NetworkedAddressInfo addr;
-	std::shared_ptr<ConnectingSocket> econn;
+	estconn::EstConner estconn;
 	IOResource conn;
 	http::Request req;
 	HealthMonitor::SAH sah;
-	Interim(NetworkedAddressInfo && a, const std::string& path, HealthMonitor::SAH s) : addr(std::move(a)), req(http::Method::GET, path), sah(s) {}
+	Interim(estconn::EstConner && e, const std::string& path, HealthMonitor::SAH s) : estconn(std::move(e)), req(http::Method::GET, path), sah(s) {}
 };
 
-template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor::SAH HealthMonitor::_add(NetworkedAddressInfo && addr, const std::string& path){
+HealthMonitor::SAH HealthMonitor::_add(estconn::EstConner && estconn, const std::string& path){
 	const auto sah = std::make_shared<std::atomic<Health>>(Health::Missing);
-	const auto interim = std::make_shared<Interim>(std::move(addr), path, sah);
+	const auto interim = std::make_shared<Interim>(std::move(estconn), path, sah);
 	auto shr = [=](Health h){
 		ticktack.stop(interim->tM);
 		ticktack.stop(interim->tD);
-		interim->tM = interim->tD = interim->tEC = TickTack::UnId;
+		interim->tM = interim->tD = TickTack::UnId;
 		sah->store(h);
 	};
 	auto conok = [=](){
@@ -71,46 +69,24 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> HealthMonitor
 	interim->t = ticktack.start(TickTack::Clock::now(), interval, [=](auto, bool cancel){
 		if(!cancel){
 			if(interim->conn) conok();
-			else {
-				netConnectTo<SDomain, SType, SProto, AddressInfo>(engine, &interim->addr) >> ([=](auto econns){
-					interim->econn = econns;
-					interim->tEC = ticktack.sleep(interval/10, [=](auto, bool cancel){
-						if(!cancel){
-							if(interim->econn) interim->econn->cancel();
-							else interim->sah->store(Health::Dead);
-						} else if(interim->econn) interim->econn.reset();
-					});
-					engine->engine <<= econns->connest() >> ([=](auto conn){
-						ticktack.stop(interim->tEC);
-						interim->econn.reset();
-						interim->conn = conn;
-						conok();
-					}|[=](auto err){
-						std::cerr << "Healt check connection establish failed: " << err << "\n";
-						ticktack.stop(interim->tEC);
-						interim->econn.reset();
-						shr(Health::Dead);
-					});
-				}|[=](auto err){
-					std::cerr << "Healt check connection establish failed: " << err << "\n";
-					shr(Health::Dead);
-				});
-			}
+			else engine->engine <<= interim->estconn() >> ([=](auto conn){
+				interim->conn = conn;
+				conok();
+			}|[=](auto err){
+				std::cerr << "Health check connection establish failed: " << err << "\n";
+				shr(Health::Dead);
+			});
 		}
 	});
 	return sah;
 }
 
-template<int SDomain, int SType, int SProto, typename AddressInfo> result<HealthMonitor::SAH, std::string> HealthMonitor::_findadd(const IPp& ipp, const std::string& path){
-	auto naddr = NetworkedAddressInfo::find<SDomain, SType, SProto>(ipp.ip, ipp.portstr());
-	if(naddr.isOk()) return _add<SDomain, SType, SProto, AddressInfo>(std::move(*naddr.ok()), path);
-	else return *naddr.err();
-}
-
 result<HealthMonitor::SAH, std::string> HealthMonitor::add(const IPp& ipp, const std::string& path){
-	if(isValidIPv6(ipp.ip)) return _findadd<AF_INET6, SOCK_STREAM, IPPROTO_TCP, sockaddr_in6>(ipp, path);
-	else if(isValidIPv4(ipp.ip)) return _findadd<AF_INET, SOCK_STREAM, IPPROTO_TCP, sockaddr_in>(ipp, path);
-	else return "Invalid IP"s;
+	return estconn::findEstConner(ipp, engine, &ticktack, interval/10) >> ([=](auto estconn) -> result<HealthMonitor::SAH, std::string> {
+		return _add(std::move(estconn), path);
+	}|[=](auto err) -> result<HealthMonitor::SAH, std::string> {
+		return err;
+	});
 }
 
 }
