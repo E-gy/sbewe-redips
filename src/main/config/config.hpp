@@ -5,11 +5,11 @@
 #include <variant>
 #include <vector>
 #include <unordered_map>
-#include <unordered_set>
 #include <iostream>
 #include <util/result.hpp>
 #include <util/hostresolv.hpp>
 #include <util/ip.hpp>
+#include <util/headmod.hpp>
 
 namespace redips::config {
 
@@ -34,14 +34,6 @@ struct FileServer {
 struct Proxy {
 	/// configured or anonynous upstream
 	std::variant<std::string, IPp> upstream;
-	struct HeadMod {
-		/// Headers and respective values to remove
-		std::unordered_set<std::string> remove;
-		/// Headers to rename (from → to)
-		std::unordered_map<std::string, std::string> rename;
-		/// Headers and respective values to add
-		std::unordered_map<std::string, std::string> add;
-	};
 	/// Forwarded request modifier
 	HeadMod fwdMod;
 	/// Backwarded response modifier
