@@ -22,7 +22,7 @@ class BasicAuther : public IServer {
 				std::string type, cred64;
 				if(val >> type >> cred64) if(type == "Basic" && creds.count(b64decode(cred64.c_str(), cred64.length())) > 0) return protege->take(conn, req, respb);
 			}
-			Response resp(Status::UNAUTHORIZED);
+			Response resp(proxh ? Status::PROXY_AUTHENTICATION_REQUIRED : Status::UNAUTHORIZED);
 			resp.setHeader(proxh ? Header::ProxyAuthenticate : Header::Authenticate, "Basic realm=\""+realm+"\"");
 			respb(std::move(resp));
 		}
