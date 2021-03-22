@@ -22,11 +22,11 @@ template<typename LiSo> class P2VListener : public IListener {
 template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListener, std::string> listenOnV(yasync::io::IOYengine* engine, const IPp& ipp, ConnectionCare* cc, virt::SServer vs){
 	auto ar = yasync::io::NetworkedAddressInfo::find<SDomain, SType, SProto>(ipp.ip, ipp.portstr());
 	if(auto err = ar.err()) return *err;
-	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, []([[maybe_unused]] auto _, yasync::io::sysneterr_t err, const std::string& location){
+	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, [](auto, yasync::io::sysneterr_t err, const std::string& location){
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
-	}, [=]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
-		cc->takeCare(conn, vs);
+	}, [=](AddressInfo remote, const yasync::io::IOResource& conn){
+		cc->takeCare(ConnectionInfo{conn, ipaddr2str(SDomain, &remote), "http", std::nullopt}, vs);
 	});
 	if(auto err = lir1.err()) return *err;
 	auto listener = std::move(*lir1.ok());

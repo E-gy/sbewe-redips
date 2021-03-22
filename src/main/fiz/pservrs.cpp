@@ -52,18 +52,18 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 	auto sniha = std::make_shared<P2VLSNIHandler>(hmap);
 	SSL_CTX_set_tlsext_servername_callback(acctx->ctx(), handleSNI);
 	SSL_CTX_set_tlsext_servername_arg(acctx->ctx(), sniha.get());
-	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, []([[maybe_unused]] auto _, yasync::io::sysneterr_t err, const std::string& location){
+	auto lir1 = yasync::io::netListen<SDomain, SType, SProto, AddressInfo>(engine, [](auto, yasync::io::sysneterr_t err, const std::string& location){
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
-	}, [acctx, cc, vs]([[maybe_unused]] auto _, const yasync::io::IOResource& conn){
+	}, [acctx, cc, vs](AddressInfo remote, const yasync::io::IOResource& conn){
 		auto ssl = SSL_new(acctx->ctx());
 		if(!ssl){
 			std::cerr << "Failed to instantiate SSL\n";
 			return;
 		}
-		openSSLIO(conn, ssl) >> ([cc, vs, ssl](auto conn){
+		openSSLIO(conn, ssl) >> ([cc, vs, ssl, remote](auto conn){
 			SSL_set_accept_state(ssl);
-			cc->takeCare(conn, vs);
+			cc->takeCare(ConnectionInfo{conn, ipaddr2str(SDomain, &remote), "https", std::nullopt}, vs);
 		}|[](auto err){ std::cerr << "Connection convert to SSL error " << err << "\n"; });
 	});
 	if(auto err = lir1.err()) return *err;
