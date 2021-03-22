@@ -147,7 +147,7 @@ int main(int argc, char* args[]){
 					break;
 				}
 				auto stack = std::move(*stackr.ok());
-				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
+				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack), vhost.mode.index() == 1);
 				auto fiz = &terms[vhost.address];
 				fiz->addService(vhost.tok(), stack);
 				if(vhost.isDefault) fiz->setDefaultService(stack);
