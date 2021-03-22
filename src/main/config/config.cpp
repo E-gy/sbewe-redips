@@ -72,10 +72,12 @@ void from_json(const json& j, FileServer& fs){
 void to_json(json& j, const std::string& pref, const Proxy::HeadMod& hm){
 	if(hm.add.size() > 0) j[pref + "set_header"] = hm.add;
 	if(hm.remove.size() > 0) j[pref + "remove_header"] = hm.remove;
+	if(hm.rename.size() > 0) j[pref + "rename_header"] = hm.rename;
 }
 void from_json(const json& j, const std::string& pref, Proxy::HeadMod& hm){
 	if(j.contains(pref + "set_header")) j.at(pref + "set_header").get_to(hm.add);
 	if(j.contains(pref + "remove_header")) j.at(pref + "remove_header").get_to(hm.remove);
+	if(j.contains(pref + "rename_header")) j.at(pref + "rename_header").get_to(hm.rename);
 }
 
 void to_json(json& j, const Proxy& p){

@@ -35,10 +35,12 @@ struct Proxy {
 	/// configured or anonynous upstream
 	std::variant<std::string, IPp> upstream;
 	struct HeadMod {
-		/// Headers and respective values to add
-		std::unordered_map<std::string, std::string> add;
 		/// Headers and respective values to remove
 		std::unordered_set<std::string> remove;
+		/// Headers to rename (from → to)
+		std::unordered_map<std::string, std::string> rename;
+		/// Headers and respective values to add
+		std::unordered_map<std::string, std::string> add;
 	};
 	/// Forwarded request modifier
 	HeadMod fwdMod;
