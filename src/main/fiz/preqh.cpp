@@ -10,8 +10,8 @@ namespace redips::fiz {
 using namespace magikop;
 using namespace http;
 
-inline bool keepAlive(SharedRequest req){
-	if(auto conn = req->getHeader(Header::Connection)) if(conn->find("close") != std::string::npos) return false;
+inline bool keepAlive(RR& rr){
+	if(auto conn = rr.getHeader(Header::Connection)) if(conn->find("close") != std::string::npos) return false;
 	return true;
 }
 
@@ -36,9 +36,9 @@ void ConnectionCare::shutdown(){
 
 void ConnectionCare::takeCare(yasync::io::IOResource conn, virt::SServer vs){
 	setIdle(conn);
-	conn->engine <<= Request::read(conn) >> ([=](SharedRequest reqwest){
+	conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
 		unsetIdle(conn);
-		const bool kal = keepAlive(reqwest);
+		const bool kal = keepAlive(*reqwest);
 		vs->take(conn, reqwest, [=](auto resp){
 			auto wr = conn->writer();
 			{

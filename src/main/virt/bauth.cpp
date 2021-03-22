@@ -15,7 +15,7 @@ class BasicAuther : public IServer {
 	SServer protege;
 	public:
 		BasicAuther(const std::string& r, std::unordered_set<std::string>&& c, SServer p) : realm(r), creds(c), protege(p) {}
-		void take(yasync::io::IOResource conn, redips::http::SharedRequest req, RespBack respb) override {
+		void take(yasync::io::IOResource conn, redips::http::SharedRRaw req, RespBack respb) override {
 			if(auto auh = req->getHeader(Header::Authorization)){
 				std::istringstream val(*auh);
 				std::string type, cred64;
