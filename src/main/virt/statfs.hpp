@@ -12,7 +12,7 @@ class StaticFileServer : public IServer {
 	std::string deff;
 	public:
 		StaticFileServer(yasync::io::IOYengine*, std::string root, std::string deff);
-		void take(yasync::io::IOResource, redips::http::SharedRequest, RespBack) override;
+		void take(yasync::io::IOResource, redips::http::SharedRRaw, RespBack) override;
 };
 
 }
