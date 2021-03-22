@@ -61,6 +61,14 @@ yasync::Future<result<SharedResponse, RRReadError>> Response::read(yasync::io::I
 	};
 }
 
+yasync::Future<result<SharedRRaw, RRReadError>> RRaw::read(yasync::io::IOResource res){
+	SharedRRaw rr(new RRaw());
+	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedRRaw, RRReadError>{
+		if(auto err = rres.err()) return *err;
+		else return rr;
+	};
+}
+
 RRReadResult RR::readHeaders(const std::string& s){
 	std::size_t nhs = 0;
 	while(nhs < s.length()){
@@ -144,6 +152,20 @@ void Request::writeTitle(std::ostream& w) const {
 }
 void Response::writeTitle(std::ostream& w) const {
 	w << versionGetStr(version) << SP << statusGetCode(status) << SP << statusGetMessage(status) << CRLF;
+}
+
+RRaw::RRaw(const std::string& t) : title(t){}
+RRaw::RRaw(const RR& r){
+	std::ostringstream os;
+	r.writeTitle(os);
+	title = os.str();
+}
+RRReadResult RRaw::readTitle(const std::string& t){
+	title = t;
+	return RRReadResult::Ok();
+}
+void RRaw::writeTitle(std::ostream& os) const {
+	os << title;
 }
 
 }

@@ -12,9 +12,11 @@ namespace redips::http {
 
 struct Request;
 struct Response;
+struct RRaw;
 struct RR;
 using SharedRequest = std::shared_ptr<Request>;
 using SharedResponse = std::shared_ptr<Response>;
+using SharedRRaw = std::shared_ptr<RRaw>;
 using SharedRR = std::shared_ptr<RR>;
 
 struct RRReadError {
@@ -78,6 +80,23 @@ struct Response : public RR {
 	explicit Response(Status);
 	template<typename T> Response(Status s, const T& body) : Response(s) { setBody(body); }
 	static yasync::Future<result<SharedResponse, RRReadError>> read(yasync::io::IOResource);
+	RRReadResult readTitle(const std::string&) override;
+	void writeTitle(std::ostream&) const override;
+};
+
+struct RRaw : public RR {
+	std::string title;
+	RRaw() = default;
+	RRaw(const std::string&);
+	RRaw(const RR&);
+	template<typename R> result<R, RRReadError> as(){
+		R r;
+		if(auto err = r.readTitle(title).errOpt()) return result<R, RRReadError>::Err(*err);
+		r.headers = headers;
+		r.body = body;
+		return r;
+	}
+	static yasync::Future<result<SharedRRaw, RRReadError>> read(yasync::io::IOResource);
 	RRReadResult readTitle(const std::string&) override;
 	void writeTitle(std::ostream&) const override;
 };
