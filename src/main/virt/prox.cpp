@@ -31,6 +31,7 @@ class ProxyingServer : public IServer {
 			});
 		}
 		void take(yasync::io::IOResource, redips::http::SharedRRaw rr, RespBack resp) override {
+			rr->setHeader(http::Header::Connection, "close");
 			return sprr(rr, resp, 0);
 		}
 };
