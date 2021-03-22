@@ -13,7 +13,7 @@ class ProxyingServer : public IServer {
 	public:
 		ProxyingServer(yasync::Yengine* e, ProxyConnectionFactory && c, unsigned r) : engine(e), cf(std::move(c)), retries(r) {}
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
-			if(tr > retries) resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
+			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
 			engine <<= cf() >> ([=](auto conn){
 				auto wr = conn->writer();
