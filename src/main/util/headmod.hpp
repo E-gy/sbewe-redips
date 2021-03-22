@@ -16,4 +16,5 @@ struct HeadMod {
 	std::unordered_map<std::string, std::string> rename;
 	/// Headers and respective values to add
 	std::unordered_map<std::string, std::string> add;
+	inline operator bool(){ return remove.size() || rename.size() || add.size(); }
 };

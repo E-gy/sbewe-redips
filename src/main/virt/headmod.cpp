@@ -25,10 +25,11 @@ class HeadersModifier : public IServer {
 		HeadersModifier(const HeadMod& f, const HeadMod& b, SServer p) : fwd(f), bwd(b), prox(p) {}
 		void take(yasync::io::IOResource conn, redips::http::SharedRRaw req, RespBack respb) override {
 			headMod(*req, fwd);
-			return prox->take(conn, req, [=](auto resp){
+			if(bwd) return prox->take(conn, req, [=](auto resp){
 				headMod(resp, bwd);
 				respb(std::move(resp));
 			});
+			else return prox->take(conn, req, respb);
 		}
 };
 
