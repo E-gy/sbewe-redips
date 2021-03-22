@@ -10,6 +10,7 @@
 #include <util/hostresolv.hpp>
 #include <util/ip.hpp>
 #include <util/headmod.hpp>
+#include <util/lbm.hpp>
 
 namespace redips::config {
 
@@ -53,9 +54,7 @@ struct VHost {
 	HostK tok();
 };
 
-enum class LoadBalancingMethod {
-	RoundRobin, FailOver, FailRobin
-};
+using LoadBalancingMethod = ::LoadBalancingMethod;
 
 struct Uphost {
 	IPp address;
