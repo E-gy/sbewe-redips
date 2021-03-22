@@ -155,11 +155,10 @@ void Response::writeTitle(std::ostream& w) const {
 }
 
 RRaw::RRaw(const std::string& t) : title(t){}
-RRaw::RRaw(const RR& r){
+RRaw::RRaw(const RR& r) : RR(r) {
 	std::ostringstream os;
 	r.writeTitle(os);
 	title = os.str();
-	body = r.body;
 }
 RRReadResult RRaw::readTitle(const std::string& t){
 	title = t;
