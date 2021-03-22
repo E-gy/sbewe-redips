@@ -15,8 +15,10 @@ class ProxyingServer : public IServer {
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
 			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
+			const bool hhh = rr->hasHeader(http::Header::Host);
 			engine <<= cf() >> ([=](auto pair){
 				auto conn = pair.first;
+				if(!hhh) rr->setHeader(http::Header::Host, pair.second.ip);
 				auto wr = conn->writer();
 				rr->write(wr);
 				return wr->eod() >> ([=](){ return http::RRaw::read(conn); }|[=](auto err){
@@ -28,6 +30,7 @@ class ProxyingServer : public IServer {
 				return yasync::completed(rDecay::Err(http::RRReadError("")));
 			}) >> ([=](auto rrbwd){ return resp(std::move(*rrbwd)); }|[=](auto err){
 				if(err.desc != "") std::cerr << "Proxy conn bwd failed: " << err.desc << "\n";
+				if(!hhh) rr->removeHeader(http::Header::Host);
 				return sprr(rr, resp, tr+1);
 			});
 		}
@@ -48,8 +51,10 @@ class PooledProxyingServer : public IServer {
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
 			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
+			const bool hhh = rr->hasHeader(http::Header::Host);
 			engine <<= cf() >> ([=](auto pair){
 				auto conn = pair.first;
+				if(!hhh) rr->setHeader(http::Header::Host, pair.second.ip);
 				auto wr = conn->writer();
 				rr->write(wr);
 				engine <<= wr->eod() >> ([=](){ return http::RRaw::read(conn); }|[=](auto err){
@@ -60,10 +65,12 @@ class PooledProxyingServer : public IServer {
 				}|[=](auto err){
 					std::cerr << "Proxy rw failed: " << err.desc << "\n";
 					uf(ConnectionResult::Err(err.desc));
+					if(!hhh) rr->removeHeader(http::Header::Host);
 					return sprr(rr, resp, tr+1);
 				});
 			}|[=](auto err){
 				std::cerr << "Proxy est conn failed: " << err << "\n";
+				if(!hhh) rr->removeHeader(http::Header::Host);
 				return sprr(rr, resp, tr+1);
 			});
 		}
