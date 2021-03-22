@@ -133,7 +133,7 @@ inline constexpr const char* statusGetMessage(Status status){
 }
 
 enum class Header {
-	Host, ContentLength, Date, Connection, Authorization, Authenticate, ProxyAuthorization, ProxyAuthenticate
+	Host, ContentLength, Date, Connection, Authorization, Authenticate, ProxyAuthorization, ProxyAuthenticate, Forwarded
 };
 
 inline constexpr const char* headerGetStr(Header h){
@@ -146,6 +146,7 @@ inline constexpr const char* headerGetStr(Header h){
 		case Header::Authenticate: return "WWW-Authenticate";
 		case Header::ProxyAuthorization: return "Proxy-Authorization";
 		case Header::ProxyAuthenticate: return "Proxy-Authenticate";
+		case Header::Forwarded: return "Forwarded";
 		default: return "";
 	}
 }
