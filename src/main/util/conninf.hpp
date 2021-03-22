@@ -1,6 +1,6 @@
 #pragma once
 
-#include <yasync.hpp>
+#include <yasync/io.hpp>
 
 struct ConnectionInfo {
 	yasync::io::IOResource connection;
