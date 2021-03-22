@@ -169,7 +169,7 @@ int main(int argc, char* args[]){
 					std::cout << "Shutting down...\n";
 					for(auto li : *lists) li->shutdown();
 				};
-				std::cout << "listening...\n";
+				std::cout << "All operations online!\n";
 				interproc::extNotifyReady(argc, args);
 			} else for(auto li : *lists) li->shutdown();
 			yasync::blawait<void>(&engine, dun);
