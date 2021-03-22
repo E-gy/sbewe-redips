@@ -10,7 +10,7 @@ using namespace magikop;
 
 StaticFileServer::StaticFileServer(yasync::io::IOYengine* e, std::string r, std::string d) : engine(e), root(r), deff(d) {}
 
-void StaticFileServer::take([[maybe_unused]] yasync::io::IOResource conn, redips::http::SharedRRaw rraw, RespBack respb){
+void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw, RespBack respb){
 	rraw->as<http::Request>() >> ([&](http::Request req){
 		auto relp = root;
 		if(relp[relp.length()-1] != FPATHSEP) relp += '/';

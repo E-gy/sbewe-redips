@@ -23,7 +23,7 @@ class HeadersModifier : public IServer {
 	SServer prox;
 	public:
 		HeadersModifier(const HeadMod& f, const HeadMod& b, SServer p) : fwd(f), bwd(b), prox(p) {}
-		void take(yasync::io::IOResource conn, redips::http::SharedRRaw req, RespBack respb) override {
+		void take(const ConnectionInfo& conn, redips::http::SharedRRaw req, RespBack respb) override {
 			headMod(*req, fwd);
 			if(bwd) return prox->take(conn, req, [=](auto resp){
 				headMod(resp, bwd);

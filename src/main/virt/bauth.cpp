@@ -16,7 +16,7 @@ class BasicAuther : public IServer {
 	bool proxh;
 	public:
 		BasicAuther(const std::string& r, std::unordered_set<std::string>&& c, SServer p, bool prox) : realm(r), creds(c), protege(p), proxh(prox) {}
-		void take(yasync::io::IOResource conn, redips::http::SharedRRaw req, RespBack respb) override {
+		void take(const ConnectionInfo& conn, redips::http::SharedRRaw req, RespBack respb) override {
 			if(auto auh = req->getHeader(proxh ? Header::ProxyAuthorization : Header::Authorization)){
 				std::istringstream val(*auh);
 				std::string type, cred64;

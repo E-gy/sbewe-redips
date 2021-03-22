@@ -34,7 +34,8 @@ void ConnectionCare::shutdown(){
 	for(auto conn : ridle) conn->cancel();
 }
 
-void ConnectionCare::takeCare(yasync::io::IOResource conn, virt::SServer vs){
+void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
+	auto conn = inf.connection;
 	setIdle(conn);
 	conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
 		unsetIdle(conn);
@@ -50,7 +51,7 @@ void ConnectionCare::takeCare(yasync::io::IOResource conn, virt::SServer vs){
 			resp.setHeader(Header::Connection, kal && !sdown ? "keep-alive" : "closed");
 			resp.write(wr);
 			conn->engine <<= wr->eod() >> ([=](){
-				if(kal && !sdown) takeCare(conn, vs); //If shut down is initiated after keep-alive is sent, oh well. May as well close it now.
+				if(kal && !sdown) takeCare(inf, vs); //If shut down is initiated after keep-alive is sent, oh well. May as well close it now.
 			}|[](auto err){
 				std::cerr << "Failed to respond: " << err << "\n";
 			});

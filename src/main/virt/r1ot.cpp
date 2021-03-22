@@ -12,7 +12,7 @@ class R1oter : public IServer {
 	R1oter(HostMapper<SServer> && s, std::optional<SServer> && d) : services(s), defolt(d) {}
 	public:
 		friend class R1otBuilder;
-		void take(yasync::io::IOResource conn, redips::http::SharedRRaw req, RespBack respb) override {
+		void take(const ConnectionInfo& conn, redips::http::SharedRRaw req, RespBack respb) override {
 			if(auto host = req->getHeader(http::Header::Host)){
 				if(auto serv = services.resolve(*host)) return (*serv)->take(conn, req, respb);
 			} else if(defolt) return (*defolt)->take(conn, req, respb);
