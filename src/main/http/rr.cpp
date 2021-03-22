@@ -159,6 +159,7 @@ RRaw::RRaw(const RR& r){
 	std::ostringstream os;
 	r.writeTitle(os);
 	title = os.str();
+	body = r.body;
 }
 RRReadResult RRaw::readTitle(const std::string& t){
 	title = t;
