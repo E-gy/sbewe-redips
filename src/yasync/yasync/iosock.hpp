@@ -122,8 +122,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 		};
 		std::shared_ptr<OutsideFuture<ListenEvent>> engif;
 		void notify(ListenEvent e){
-			engif->r = e;
-			engif->s = FutureState::Completed;
+			engif->completed(std::move(e));
 			engine->engine->notify(engif);
 		}
 		void notify(ListenEventType e){ notify(ListenEvent{e, 0}); }
@@ -195,17 +194,16 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 				if(::epoll_ctl(engine->ioPo->rh, EPOLL_CTL_ADD, sock, &epm) < 0) return retSysError<ListenResult>("epoll add failed");
 			}
 			#endif
-			return ListenResult::Ok(engine->engine->launch(lambdagen([this, self = slf.lock()](const Yengine*, bool& done, int) -> std::variant<AFuture, movonly<void>>{
-				if(done) return movonly<void>();
+			return ListenResult::Ok(engine->engine->launch(lambdagen([this, self = slf.lock()](const Yengine*, bool& done, int) -> Generesume<void> {
+				if(done) return monoid<void>();
 				auto stahp = [&](){
 					done = true;
 					close();
-					return movonly<void>();
+					return monoid<void>();
 				};
-				if(engif->s == FutureState::Completed){
-					auto event = engif->result();
-					engif->s = FutureState::Running;
-					switch(event->type){
+				if(engif->state() == FutureState::Completed){
+					auto event = engif->running();
+					switch(event.type){
 						case ListenEventType::Accept:{
 							#ifdef _WIN32
 							if(::setsockopt(lconn->sock(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, reinterpret_cast<char*>(&sock), sizeof(sock)) == SOCKET_ERROR){
@@ -236,7 +234,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 							break;
 						}
 						case ListenEventType::Error:
-							if(erracc(self, event->err, "Async accept error")) return stahp();
+							if(erracc(self, event.err, "Async accept error")) return stahp();
 							break;
 						case ListenEventType::Close: return stahp();
 						default: if(erracc(self, 0, "Received unknown event")) return stahp();
@@ -361,8 +359,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<std::s
 		if(::connect(sock, candidate->ai_addr, candidate->ai_addrlen) == 0)
 		#endif
 		{
-			csock->redy->s = FutureState::Completed;
-			csock->redy->r = ConnectingSocket::ConnRedyResult::Ok();
+			csock->redy->completed(ConnectingSocket::ConnRedyResult::Ok());
 			break;
 		}
 		#ifdef _WIN32

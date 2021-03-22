@@ -2,7 +2,9 @@
 
 #include "afustate.hpp"
 #include <memory>
+#include <optional>
 #include "variant.hpp"
+#include "monoid.hpp"
 
 namespace yasync {
 
@@ -15,38 +17,6 @@ using AGenf = std::shared_ptr<IGenf>;
 template<typename T> using Genf = std::shared_ptr<IGenfT<T>>;
 using ANotf = std::shared_ptr<INotf>;
 template<typename T> using Notf = std::shared_ptr<INotfT<T>>;
-
-//DEPRECATED
-
-template<typename T> class movonly {
-	std::unique_ptr<T> t;
-	public:
-		movonly() : t() {}
-		movonly(T* pt) : t(pt) {}
-		movonly(const T& vt) : t(new T(vt)) {} 
-		movonly(T && vt) : t(new T(std::move(vt))) {}
-		~movonly() = default;
-		movonly(movonly && mov) noexcept { t = std::move(mov.t); }
-		movonly& operator=(movonly && mov) noexcept { t = std::move(mov.t); return *this; }
-		//no copy
-		movonly(const movonly& cpy) = delete;
-		movonly& operator=(const movonly& cpy) = delete;
-		auto operator*(){ return std::move(t.operator*()); }
-		auto operator->(){ return t.operator->(); }
-};
-template<> class movonly<void> {
-	std::unique_ptr<void*> t;
-	public:
-		movonly(){}
-		~movonly() = default;
-		movonly(movonly &&) noexcept {}
-		movonly& operator=(movonly &&) noexcept { return *this; }
-		//no copy (still, yeah!)
-		movonly(const movonly& cpy) = delete;
-		movonly& operator=(const movonly& cpy) = delete;
-};
-
-//
 
 class AFuture;
 template<typename T> class Future;
@@ -93,7 +63,28 @@ template<typename T> class Future {
 		template<typename Visitor> decltype(auto) visit(Visitor &&) const;
 		template<typename Visitor> decltype(auto) visit(Visitor &&);
 		FutureState state() const;
-		movonly<T> result();
+		T result();
+};
+
+/**
+ * A very special type. Effectively a dedicated optional.
+ * When used in conjuctions with pipelining futures allows yielding of nothing (and in most cases act as indication of doneness).
+ */
+template<typename T> struct Maybe {
+	std::optional<T> t;
+	Maybe() = default;
+	Maybe(const T& v) : t(v) {}
+	Maybe(T && v) : t(std::move(v)) {}
+	inline bool isSome() const { return t.has_value(); }
+	inline operator bool() const { return isSome(); }
+	inline T operator*(){ return std::move(*t); }
+};
+template<> struct Maybe<void> {
+	bool has;
+	Maybe() = default;
+	Maybe(bool h) : has(h){}
+	inline bool isSome() const { return has; }
+	inline operator bool() const { return isSome(); }
 };
 
 }

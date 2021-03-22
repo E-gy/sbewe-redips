@@ -220,17 +220,17 @@ template<typename PatIt> Future<IAIOResource::ReadResult> IAIOResource::read_(co
 		for(; j < readbuff.size() && pat != patEnd; j++, pat++) if(readbuff[j] != *pat) break;
 		if(pat == patEnd) return read<std::vector<char>>(j);
 	}
-	return defer(lambdagen([this, self = slf.lock(), pattern = std::vector<char>(patBegin, patEnd)](const Yengine*, bool& done, std::optional<Future<IAIOResource::ReadResult>>& awao) -> std::variant<AFuture, movonly<IAIOResource::ReadResult>> {
+	return defer(lambdagen([this, self = slf.lock(), pattern = std::vector<char>(patBegin, patEnd)](const Yengine*, bool& done, std::optional<Future<IAIOResource::ReadResult>>& awao) -> Generesume<IAIOResource::ReadResult> {
 		if(done) return IAIOResource::ReadResult::Err("Result already submitted!");
 		if(awao){
 			auto gmd = *awao;
 			if(gmd.state() == FutureState::Completed){
 				auto res = gmd.result();
-				if(auto err = res->err()){
+				if(auto err = res.err()){
 					done = true;
 					return IAIOResource::ReadResult::Err(*err);
 				}
-				auto rd = *res->ok();
+				auto rd = *res.ok();
 				if(rd.empty()){
 					done = true;
 					return IAIOResource::ReadResult::Err("Reached EOF and didn't meet pattern!");
@@ -244,7 +244,7 @@ template<typename PatIt> Future<IAIOResource::ReadResult> IAIOResource::read_(co
 			for(; j < readbuff.size() && pat != pattern.end(); j++, pat++) if(readbuff[j] != *pat) break;
 			if(pat == pattern.end()){
 				done = true;
-				return *read<std::vector<char>>(j).result();
+				return read<std::vector<char>>(j).result();
 			}
 		}
 		auto gmd = _read(1);

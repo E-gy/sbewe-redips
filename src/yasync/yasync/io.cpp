@@ -40,8 +40,7 @@ class FileResource : public IAIOResource {
 	std::array<char, DEFAULT_BUFFER_SIZE> buffer;
 	std::shared_ptr<OutsideFuture<IOCompletionInfo>> engif;
 	void notify(IOCompletionInfo inf) override {
-		engif->r = inf;
-		engif->s = FutureState::Completed;
+		engif->completed(std::move(inf));
 		engine->notify(engif);
 	}
 	void cancel() override {
@@ -64,8 +63,7 @@ class FileResource : public IAIOResource {
 			if(errno == EPERM){
 				//The file does not support non-blocking io :(
 				//That means that all r/w will succeed (and block). So we report ourselves ready for IO, and off to EOD we go!
-				engif->r = wr ? EPOLLOUT : EPOLLIN;
-				engif->s = FutureState::Completed;
+				engif->completed(wr ? EPOLLOUT : EPOLLIN);
 				return !(res->iopor = true);
 			} else return retSysError<EPollRegResult>("Register to epoll failed");
 		}
@@ -97,12 +95,11 @@ class FileResource : public IAIOResource {
 		~FileResource(){}
 		Future<ReadResult> _read(size_t bytes){
 			//self.get() == this   exists to memory-lock dangling IO resource to this lambda generator
-			return defer(lambdagen([this, self = slf.lock(), bytes](const Yengine*, bool& done, std::vector<char>& data) -> std::variant<AFuture, movonly<ReadResult>> {
+			return defer(lambdagen([this, self = slf.lock(), bytes](const Yengine*, bool& done, std::vector<char>& data) -> Generesume<ReadResult> {
 				if(done) return ReadResult::Ok(data);
 				#ifdef _WIN32 //TODO FIXME a UB lives somewhere in here, making itself known only on large data reads
-				if(engif->s == FutureState::Completed){
-					engif->s = FutureState::Running;
-					IOCompletionInfo result = *engif->r;
+				if(engif->state() == FutureState::Completed){
+					IOCompletionInfo result = engif->running();
 					if(!result.status) switch(result.lerr){
 						case ERROR_HANDLE_EOF:
 							done = true;
@@ -154,9 +151,8 @@ class FileResource : public IAIOResource {
 					if(auto err = rr.err()) return ReadResult::Err(*err);
 					else if(*rr.ok()) return AFuture(engif);
 				}
-				if(engif->s == FutureState::Completed){
-					engif->s = FutureState::Running;
-					int leve = *engif->r;
+				if(engif->state() == FutureState::Completed){
+					int leve = engif->running();
 					switch(leve){
 						case EPOLLIN: {
 							int transferred;
@@ -200,13 +196,12 @@ class FileResource : public IAIOResource {
 			}, std::vector<char>()));
 		}
 		Future<WriteResult> _write(std::vector<char>&& data){
-			return defer(lambdagen([this, self = slf.lock()](const Yengine*, bool& done, std::vector<char>& data) -> std::variant<AFuture, movonly<WriteResult>> {
+			return defer(lambdagen([this, self = slf.lock()](const Yengine*, bool& done, std::vector<char>& data) -> Generesume<WriteResult> {
 				if(data.empty()) done = true;
 				if(done) return WriteResult::Ok();
 				#ifdef _WIN32
-				if(engif->s == FutureState::Completed){
-					engif->s = FutureState::Running;
-					IOCompletionInfo result = *engif->r;
+				if(engif->state() == FutureState::Completed){
+					IOCompletionInfo result = engif->running();
 					if(!result.status) switch(result.lerr){
 						case ERROR_OPERATION_ABORTED:
 							done = true;
@@ -250,9 +245,8 @@ class FileResource : public IAIOResource {
 					if(auto err = rr.err()) return WriteResult::Err(*err);
 					else if(*rr.ok()) return AFuture(engif);
 				}
-				if(engif->s == FutureState::Completed){
-					engif->s = FutureState::Running;
-					int leve = *engif->r;
+				if(engif->state() == FutureState::Completed){
+					int leve = engif->running();
 					switch(leve){
 						case EPOLLOUT: {
 							int transferred;
@@ -340,8 +334,7 @@ template<> Future<IAIOResource::WriteResult> IAIOResource::write<std::vector<cha
 IAIOResource::Writer::Writer(IOResource r) : resource(r), eodnot(new OutsideFuture<IAIOResource::WriteResult>()), lflush(completed(IAIOResource::WriteResult())) {}
 IAIOResource::Writer::~Writer(){
 	resource->engine <<= flush() >> [res = resource, naut = eodnot](auto wr){
-		naut->r = wr;
-		naut->s = FutureState::Completed;
+		naut->completed(std::move(wr));
 		res->engine->notify(naut);
 	};
 }
@@ -350,7 +343,7 @@ Future<IAIOResource::WriteResult> IAIOResource::Writer::flush(){
 	std::vector<char> buff;
 	std::swap(buff, buffer);
 	return lflush = (lflush >> [res = resource, buff](auto lr){
-		if(lr.err()) return completed(lr);
+		if(lr.err()) return completed(std::move(lr));
 		else return res->write(buff);
 	});
 }

@@ -42,11 +42,12 @@ template<typename T> inline FutureState Future<T>::state() const {
 		[](const Notf<T>& f){ return f->state(); },
 	});
 }
-template<typename T> inline movonly<T> Future<T>::result(){
+template<typename T> inline T Future<T>::result(){
 	return visit(overloaded {
-		[](Genf<T>& f){ return std::move(f->result()); },
-		[](Notf<T>& f){ return std::move(f->result()); },
-	});
+		[](Genf<T>& f){ return f->result(); },
+		[](Notf<T>& f){ return f->result(); },
+	}).move();
 }
+template<> inline void Future<void>::result(){}
 
 }
