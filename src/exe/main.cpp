@@ -11,7 +11,7 @@
 #include <virt/headmod.hpp>
 #include <fiz/estconn.hpp>
 #include <virt/prox.hpp>
-#include <virt/loadbal.hpp>
+#include <virt/loadbalhelth.hpp>
 
 #include <iostream>
 #include <unordered_map>
@@ -60,8 +60,10 @@ int main(int argc, char* args[]){
 		auto dun = yasync::aggregAll<void>();
 		auto timeToStahp = timeToStahpRes.ok();
 		{
+			constexpr auto estconntimeout = std::chrono::milliseconds(5000);
 			yasync::io::IOYengine ioengine(&engine);
 			yasync::TickTack ticktack;
+			fiz::HealthMonitor lbhmon(&ioengine, std::chrono::seconds(12));
 			fiz::ConnectionCare conca;
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
@@ -74,7 +76,7 @@ int main(int argc, char* args[]){
 					case LoadBalancingMethod::RoundRobin:{
 						auto bal = std::make_shared<virt::RoundRobinBalancer<virt::ProxyConnectionFactory>>();
 						for(auto h : u.second.hosts){
-							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, std::chrono::milliseconds(5000));
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout);
 							if(auto err = hpfr.err()){
 								std::cerr << "Ups host address lookup error: " << err << "\n";
 								okay = false;
@@ -85,8 +87,42 @@ int main(int argc, char* args[]){
 						uv = virt::proxyTo(&engine, [bal](){ return (*bal)()(); }, u.second.retries.value_or(0));
 						break;
 					}
-					case LoadBalancingMethod::FailOver:
-					case LoadBalancingMethod::FailRobin:
+					case LoadBalancingMethod::FailOver:{
+						auto bal = std::make_shared<virt::FailOverBalancer<virt::ProxyConnectionFactory>>(&lbhmon);
+						for(auto h : u.second.hosts){
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout);
+							if(auto err = hpfr.err()){
+								std::cerr << "Ups host address lookup error: " << *err << "\n";
+								okay = false;
+								break;
+							}
+							if(auto err = bal->add(std::move(*hpfr.ok()), h.address, *h.healthCheckUrl).errOpt()){
+								std::cerr << "Ups host health check init error: " << *err << "\n";
+								okay = false;
+								break;
+							}
+						}
+						uv = virt::proxyTo(&engine, [bal](){ return (*bal)()(); }, u.second.retries.value_or(0));
+						break;
+					}
+					case LoadBalancingMethod::FailRobin:{
+						auto bal = std::make_shared<virt::FailRobinBalancer<virt::ProxyConnectionFactory>>(&lbhmon);
+						for(auto h : u.second.hosts){
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout);
+							if(auto err = hpfr.err()){
+								std::cerr << "Ups host address lookup error: " << err << "\n";
+								okay = false;
+								break;
+							}
+							if(auto err = bal->add(std::move(*hpfr.ok()), h.address, *h.healthCheckUrl, h.weight.value_or(1)).errOpt()){
+								std::cerr << "Ups host health check init error: " << *err << "\n";
+								okay = false;
+								break;
+							}
+						}
+						uv = virt::proxyTo(&engine, [bal](){ return (*bal)()(); }, u.second.retries.value_or(0));
+						break;
+					}
 					default:
 						std::cerr << "Load balancing method not supported\n";
 						okay = false;
@@ -101,7 +137,7 @@ int main(int argc, char* args[]){
 				auto stackr = std::visit(overloaded {
 					[&](const config::FileServer& fs) -> result<virt::SServer, std::string> { return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
 					[&](const config::Proxy& prox){ return std::visit(overloaded {
-						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, std::chrono::milliseconds(5000)).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 2); }); },
+						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, estconntimeout).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 2); }); },
 						[&](const std::string& u) -> result<virt::SServer, std::string> { return ups[u]; }
 					}, prox.upstream).mapOk([&](auto stack){ return virt::modifyHeaders2(prox.fwdMod, prox.bwdMod, stack); }); }
 				}, vhost.mode);
@@ -139,6 +175,7 @@ int main(int argc, char* args[]){
 			yasync::blawait<void>(&engine, dun);
 			std::cout << "Closing idle connections\n";
 			conca.shutdown();
+			lbhmon.shutdown();
 			ticktack.shutdown();
 			ioengine.wioe();
 		}
