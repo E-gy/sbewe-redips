@@ -64,6 +64,7 @@ struct Uphost {
 
 struct Upstream {
 	LoadBalancingMethod lbm;
+	std::optional<unsigned> retries;
 	std::vector<Uphost> hosts;
 };
 
