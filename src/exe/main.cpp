@@ -11,6 +11,7 @@
 #include <virt/headmod.hpp>
 #include <fiz/estconn.hpp>
 #include <virt/prox.hpp>
+#include <virt/loadbal.hpp>
 
 #include <iostream>
 #include <unordered_map>
@@ -65,14 +66,43 @@ int main(int argc, char* args[]){
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
 			//--
+			std::unordered_map<std::string, virt::SServer> ups;
+			for(auto u : config.upstreams){
+				if(!okay) break;
+				virt::SServer uv;
+				switch(u.second.lbm){
+					case LoadBalancingMethod::RoundRobin:{
+						auto bal = std::make_shared<virt::RoundRobinBalancer<virt::ProxyConnectionFactory>>();
+						for(auto h : u.second.hosts){
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, std::chrono::milliseconds(5000));
+							if(auto err = hpfr.err()){
+								std::cerr << "Ups host address lookup error: " << err << "\n";
+								okay = false;
+								break;
+							}
+							bal->add(std::move(*hpfr.ok()), h.weight.value_or(1));
+						}
+						uv = virt::proxyTo(&engine, [bal](){ return (*bal)()(); }, u.second.retries.value_or(0));
+						break;
+					}
+					case LoadBalancingMethod::FailOver:
+					case LoadBalancingMethod::FailRobin:
+					default:
+						std::cerr << "Load balancing method not supported\n";
+						okay = false;
+						break;
+				}
+				ups[u.first] = uv;
+			}
 			std::unordered_map<IPp, virt::R1otBuilder> terms;
 			std::unordered_map<IPp, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
 			for(auto vhost : config.vhosts){
+				if(!okay) break;
 				auto stackr = std::visit(overloaded {
 					[&](const config::FileServer& fs) -> result<virt::SServer, std::string> { return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
 					[&](const config::Proxy& prox){ return std::visit(overloaded {
 						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, std::chrono::milliseconds(5000)).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 2); }); },
-						[&](const std::string&) -> result<virt::SServer, std::string> {throw std::invalid_argument("Proxying upstream not yet implemented!");}
+						[&](const std::string& u) -> result<virt::SServer, std::string> { return ups[u]; }
 					}, prox.upstream).mapOk([&](auto stack){ return virt::modifyHeaders2(prox.fwdMod, prox.bwdMod, stack); }); }
 				}, vhost.mode);
 				if(auto err = stackr.err()){
