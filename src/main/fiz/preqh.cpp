@@ -40,7 +40,7 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
 		unsetIdle(conn);
 		const bool kal = keepAlive(*reqwest);
-		vs->take(conn, reqwest, [=](auto resp){
+		vs->take(inf, reqwest, [=](auto resp){
 			auto wr = conn->writer();
 			{
 				auto t = std::time(nullptr);
