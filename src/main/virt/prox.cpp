@@ -36,6 +36,40 @@ class ProxyingServer : public IServer {
 		}
 };
 
+class PooledProxyingServer : public IServer {
+	yasync::Yengine* const engine;
+	ProxyConnectionFactory cf;
+	ProxyConnectionUnfactory uf;
+	unsigned retries;
+	public:
+		PooledProxyingServer(yasync::Yengine* e, ProxyConnectionFactory && c, ProxyConnectionUnfactory && u, unsigned r) : engine(e), cf(std::move(c)), uf(std::move(u)), retries(r) {}
+		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
+			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
+			using rDecay = result<http::SharedRRaw, http::RRReadError>;
+			engine <<= cf() >> ([=](auto conn){
+				auto wr = conn->writer();
+				rr->write(wr);
+				engine <<= wr->eod() >> ([=](){ return http::RRaw::read(conn); }|[=](auto err){
+					return yasync::completed(rDecay::Err(http::RRReadError(err)));
+				}) >> ([=](auto rrbwd){
+					uf(ConnectionResult::Ok(conn));
+					return resp(std::move(*rrbwd));
+				}|[=](auto err){
+					std::cerr << "Proxy rw failed: " << err.desc << "\n";
+					uf(ConnectionResult::Err(err.desc));
+					return sprr(rr, resp, tr+1);
+				});
+			}|[=](auto err){
+				std::cerr << "Proxy est conn failed: " << err << "\n";
+				return sprr(rr, resp, tr+1);
+			});
+		}
+		void take(yasync::io::IOResource, redips::http::SharedRRaw rr, RespBack resp) override {
+			rr->setHeader(http::Header::Connection, "keep-alive");
+			return sprr(rr, resp, 0);
+		}
+};
+
 SServer proxyTo(yasync::Yengine* e, ProxyConnectionFactory && c, unsigned r){
 	return SServer(new ProxyingServer(e, std::move(c), r));
 }
