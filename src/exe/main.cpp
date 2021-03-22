@@ -8,6 +8,9 @@
 #include <fiz/pservr.hpp>
 #include <fiz/pservrs.hpp>
 #include <ossl/ssl.hpp>
+#include <virt/headmod.hpp>
+#include <fiz/estconn.hpp>
+#include <virt/prox.hpp>
 
 #include <iostream>
 #include <unordered_map>
@@ -57,6 +60,7 @@ int main(int argc, char* args[]){
 		auto timeToStahp = timeToStahpRes.ok();
 		{
 			yasync::io::IOYengine ioengine(&engine);
+			yasync::TickTack ticktack;
 			fiz::ConnectionCare conca;
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
@@ -64,10 +68,19 @@ int main(int argc, char* args[]){
 			std::unordered_map<IPp, virt::R1otBuilder> terms;
 			std::unordered_map<IPp, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
 			for(auto vhost : config.vhosts){
-				virt::SServer stack = std::visit(overloaded {
-					[&](const config::FileServer fs){ return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
-					[&](const config::Proxy) -> virt::SServer { throw std::invalid_argument("Proxying not yet implemented!"); }
+				auto stackr = std::visit(overloaded {
+					[&](const config::FileServer& fs) -> result<virt::SServer, std::string> { return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
+					[&](const config::Proxy& prox){ return std::visit(overloaded {
+						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, std::chrono::milliseconds(5000)).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 2); }); },
+						[&](const std::string&) -> result<virt::SServer, std::string> {throw std::invalid_argument("Proxying upstream not yet implemented!");}
+					}, prox.upstream).mapOk([&](auto stack){ return virt::modifyHeaders2(prox.fwdMod, prox.bwdMod, stack); }); }
 				}, vhost.mode);
+				if(auto err = stackr.err()){
+					std::cerr << "Error initializing stack: " << *err << "\n";
+					okay = false;
+					break;
+				}
+				auto stack = std::move(*stackr.ok());
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack));
 				auto fiz = &terms[vhost.address];
 				fiz->addService(vhost.tok(), stack);
@@ -96,6 +109,7 @@ int main(int argc, char* args[]){
 			yasync::blawait<void>(&engine, dun);
 			std::cout << "Closing idle connections\n";
 			conca.shutdown();
+			ticktack.shutdown();
 			ioengine.wioe();
 		}
 		yasync::io::CtrlC::un(&engine);
