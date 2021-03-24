@@ -19,7 +19,7 @@ template<typename T> class FailOverBalancer {
 			ts.push_back(std::move(t));
 			return result<void, std::string>::Ok();
 		}
-		T operator()(){
+		std::optional<T> operator()(){
 			for(unsigned i = 0; i < helth.size(); i++) switch(*helth[i]){
 				case fiz::Health::Missing:
 					if(lenient) [[fallthrough]];
@@ -30,7 +30,7 @@ template<typename T> class FailOverBalancer {
 				default:
 					break;
 			}
-			return ts[0]; //If everyone is dead, who cares?!
+			return std::nullopt;
 		}
 };
 
@@ -51,7 +51,7 @@ template<typename T> class FailRobinBalancer {
 			}
 			return result<void, std::string>::Ok();
 		}
-		T operator()(){
+		std::optional<T> operator()(){
 			for(unsigned k = 0; k < helth.size(); k++){
 				unsigned i = next++%ts.size();
 				switch(*helth[i]){
@@ -65,7 +65,7 @@ template<typename T> class FailRobinBalancer {
 						break;
 				}
 			}
-			return ts[0]; //If everyone is dead, who cares?!
+			return std::nullopt;
 		}
 };
 
