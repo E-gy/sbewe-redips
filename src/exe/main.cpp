@@ -40,6 +40,7 @@ result<config::Config, std::string> parseArgs(int argc, char* args[], bool& dry)
 }
 
 int main(int argc, char* args[]){
+	yasync::io::ssl::SSLStateControl _ssl;
 	bool dry = false;
 	auto par = parseArgs(argc, args, dry);
 	if(auto err = par.err()){
@@ -49,7 +50,6 @@ int main(int argc, char* args[]){
 	auto config = *par.ok();
 	if(dry || config.vhosts.empty()) return 0;
 	yasync::io::SystemNetworkingStateControl _sysnet;
-	yasync::io::ssl::SSLStateControl _ssl;
 	{
 		yasync::Yengine engine(1);
 		auto timeToStahpRes = yasync::io::CtrlC::on(&engine);
