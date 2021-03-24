@@ -39,13 +39,18 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	setIdle(conn);
 	conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
 		unsetIdle(conn);
-		const bool kal = keepAlive(*reqwest);
+		const bool rkal = keepAlive(*reqwest);
 		vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
 			auto wr = conn->writer();
 			{
 				auto t = std::time(nullptr);
 				auto tm = *std::gmtime(&t); //FIXME not thread-safe
 				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
+			}
+			bool kal = rkal;
+			{
+				Response respasresp;
+				if(respasresp.readTitle(resp.title).isOk()) kal &= respasresp.status != Status::BAD_REQUEST && respasresp.status < Status::INTERNAL_SERVER_ERROR;
 			}
 			resp.setHeader(Header::Connection, kal && !sdown ? "keep-alive" : "closed");
 			resp.write(wr);
