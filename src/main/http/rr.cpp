@@ -118,6 +118,7 @@ RRReadResult Request::readTitle(const std::string& l){
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
 	if(auto m = methodFromStr(ms)) method = *m;
 	else return RRReadError(Status::BAD_REQUEST, "Invalid HTTP method");
+	if(ps.length() == 0 || ps[0] != '/') return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash");
 	path = ps;
 	return RRReadResult::Ok();
 }
