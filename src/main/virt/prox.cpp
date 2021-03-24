@@ -13,7 +13,7 @@ class ProxyingServer : public IServer {
 	public:
 		ProxyingServer(yasync::Yengine* e, ProxyConnectionFactory && c, unsigned r) : engine(e), cf(std::move(c)), retries(r) {}
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
-			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
+			if(tr > retries) return resp(http::Response(http::Status::BAD_GATEWAY));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
 			const bool hhh = rr->hasHeader(http::Header::Host);
 			engine <<= cf() >> ([=](auto pair){
@@ -49,7 +49,7 @@ class PooledProxyingServer : public IServer {
 	public:
 		PooledProxyingServer(yasync::Yengine* e, ProxyConnectionFactory && c, ProxyConnectionUnfactory && u, unsigned r) : engine(e), cf(std::move(c)), uf(std::move(u)), retries(r) {}
 		void sprr(redips::http::SharedRRaw rr, RespBack resp, unsigned tr){
-			if(tr > retries) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
+			if(tr > retries) return resp(http::Response(http::Status::BAD_GATEWAY));
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
 			const bool hhh = rr->hasHeader(http::Header::Host);
 			engine <<= cf() >> ([=](auto pair){
