@@ -102,7 +102,7 @@ int main(int argc, char* args[]){
 								break;
 							}
 						}
-						uv = virt::proxyTo(&engine, [bal](){ return (*bal)()(); }, u.second.retries.value_or(0));
+						uv = virt::proxyTo(&engine, [bal](){ if(auto alive = (*bal)()) return (*alive)(); else return yasync::completed(virt::ProxyConnectionFactoryResult::Err(virt::CONFAERREVERY1ISDED)); }, u.second.retries.value_or(0));
 						break;
 					}
 					case LoadBalancingMethod::FailRobin:{
@@ -120,7 +120,7 @@ int main(int argc, char* args[]){
 								break;
 							}
 						}
-						uv = virt::proxyTo(&engine, [bal](){ return (*bal)()(); }, u.second.retries.value_or(0));
+						uv = virt::proxyTo(&engine, [bal](){ if(auto alive = (*bal)()) return (*alive)(); else return yasync::completed(virt::ProxyConnectionFactoryResult::Err(virt::CONFAERREVERY1ISDED)); }, u.second.retries.value_or(0));
 						break;
 					}
 					default:
