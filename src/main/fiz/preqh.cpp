@@ -62,7 +62,20 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 		});
 	}|[=](auto err){
 		unsetIdle(conn);
-		std::cerr << "Read request error " << err.desc << "\n";
+		if(err.asstat){
+			Response resp(*err.asstat);
+			{
+				auto t = std::time(nullptr);
+				auto tm = *std::gmtime(&t); //FIXME not thread-safe
+				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
+			}
+			resp.setHeader(Header::Connection, "closed");
+			auto wr = conn->writer();
+			resp.write(wr);
+			conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
+				std::cerr << "Failed to inform client of malformed request: " << err << "\n";
+			});
+		} else std::cerr << "Read request error " << err.desc << "\n";
 	});
 }
 
