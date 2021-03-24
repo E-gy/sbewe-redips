@@ -16,7 +16,7 @@ class R1oter : public IServer {
 			if(auto host = req->getHeader(http::Header::Host)){
 				if(auto serv = services.resolve(*host)) return (*serv)->take(conn, req, respb);
 			} else if(defolt) return (*defolt)->take(conn, req, respb);
-			respb(http::Response(http::Status::NOT_FOUND, "No such service available"));
+			respb(http::Response(http::Status::BAD_REQUEST));
 		}
 };
 
