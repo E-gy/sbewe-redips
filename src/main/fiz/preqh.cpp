@@ -47,7 +47,6 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 				auto tm = *std::gmtime(&t); //FIXME not thread-safe
 				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
 			}
-			resp.setHeader(Header::Host, "Redips");
 			resp.setHeader(Header::Connection, kal && !sdown ? "keep-alive" : "closed");
 			resp.write(wr);
 			conn->engine <<= wr->eod() >> ([=](){
