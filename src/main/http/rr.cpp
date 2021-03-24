@@ -111,7 +111,7 @@ RRReadResult Request::readTitle(const std::string& l){
 	s >> ms >> ps >> vs;
 	if(auto v = versionFromStr(vs))
 		if(versionIsSupported(*v)) version = *v;
-		else return RRReadError(Status::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP version");
+		else return RRReadError(*v == http::Version::HTTP10 || *v == http::Version::HTTP09 ? Status::UPGRADE_REQUIRED : Status::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP version");
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
 	if(auto m = methodFromStr(ms)) method = *m;
 	else return RRReadError(Status::BAD_REQUEST, "Invalid HTTP method");
