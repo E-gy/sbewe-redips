@@ -137,7 +137,7 @@ int main(int argc, char* args[]){
 				auto stackr = std::visit(overloaded {
 					[&](const config::FileServer& fs) -> result<virt::SServer, std::string> { return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
 					[&](const config::Proxy& prox){ return std::visit(overloaded {
-						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, estconntimeout).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 2); }); },
+						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, estconntimeout).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 0); }); },
 						[&](const std::string& u) -> result<virt::SServer, std::string> { return ups[u]; }
 					}, prox.upstream).mapOk([&](auto stack){ return virt::modifyHeaders2(HeadMod{}.rem(http::headerGetStr(http::Header::Host)), HeadMod{}, virt::modifyHeaders2(prox.fwdMod, prox.bwdMod, stack)); }); }
 				}, vhost.mode);
