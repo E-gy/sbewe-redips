@@ -26,9 +26,11 @@ class ProxyingServer : public IServer {
 					return yasync::completed(rDecay::Err(http::RRReadError("")));
 				});
 			}|[=](auto err){
+				if(err == CONFAERREVERY1ISDED) return yasync::completed(rDecay::Err(http::RRReadError(CONFAERREVERY1ISDED)));
 				std::cerr << "Proxy est conn failed: " << err << "\n";
 				return yasync::completed(rDecay::Err(http::RRReadError("")));
 			}) >> ([=](auto rrbwd){ return resp(std::move(*rrbwd)); }|[=](auto err){
+				if(err.desc == CONFAERREVERY1ISDED) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 				if(err.desc != "") std::cerr << "Proxy conn bwd failed: " << err.desc << "\n";
 				if(!hhh) rr->removeHeader(http::Header::Host);
 				return sprr(rr, resp, tr+1);
@@ -70,6 +72,7 @@ class PooledProxyingServer : public IServer {
 					return sprr(rr, resp, tr+1);
 				});
 			}|[=](auto err){
+				if(err == CONFAERREVERY1ISDED) return resp(http::Response(http::Status::SERVICE_UNAVAILABLE));
 				std::cerr << "Proxy est conn failed: " << err << "\n";
 				if(!hhh) rr->removeHeader(http::Header::Host);
 				return sprr(rr, resp, tr+1);

@@ -12,6 +12,9 @@ using ProxyConnectionFactoryResult = result<std::pair<yasync::io::IOResource, IP
 using ProxyConnectionFactory = std::function<yasync::Future<ProxyConnectionFactoryResult>()>;
 using ProxyConnectionUnfactory = std::function<void(yasync::io::ConnectionResult)>;
 
+/// Returning this 
+constexpr auto CONFAERREVERY1ISDED = "<{([everyone is dead bro])}>";
+
 SServer proxyTo(yasync::Yengine*, ProxyConnectionFactory &&, unsigned retries = 0);
 SServer proxyTo(yasync::Yengine*, ProxyConnectionFactory &&, ProxyConnectionUnfactory &&, unsigned retries = 0);
 
