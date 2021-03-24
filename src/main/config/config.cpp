@@ -58,6 +58,12 @@ void to_json(json& j, const BasicAuth& auth){
 void from_json(const json& j, BasicAuth& auth){
 	j.at("auth_basic").get_to(auth.realm);
 	j.at("auth_basic_users").get_to(auth.credentials);
+	if(auth.realm.find('"') != std::string::npos) throw json::type_error::create(301, "Auth realm must not contain quotation marks");
+	for(auto c : auth.credentials){
+		auto sep = c.find(':');
+		if(sep == std::string::npos) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}");
+		if(sep == 0) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}` with non-empty username");
+	}
 }
 
 void to_json(json& j, const FileServer& fs){
