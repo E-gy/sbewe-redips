@@ -4,6 +4,7 @@
 #include <sstream>
 #include <util/json.hpp>
 #include <util/filetype.hpp>
+#include <ossl/ssl.hpp>
 
 using nlohmann::json;
 
@@ -49,6 +50,7 @@ void from_json(const json& j, TLS& tls){
 	j.at("ssl_key").get_to(tls.key);
 	if(getFileType(tls.cert) != FileType::File) throw json::type_error::create(301, "Specified TLS cert file does not exist");
 	if(getFileType(tls.key) != FileType::File) throw json::type_error::create(301, "Specified TLS key file does not exist");
+	if(auto sslerr = yasync::io::ssl::createSSLContext(tls.cert, tls.key).errOpt()) throw json::type_error::create(301, "TLS Credentials invalid: " + *sslerr);
 }
 
 void to_json(json& j, const BasicAuth& auth){
