@@ -36,7 +36,8 @@ class ProxyingServer : public IServer {
 		}
 		void take(const ConnectionInfo& inf, redips::http::SharedRRaw rr, RespBack resp) override {
 			rr->setHeader(http::Header::Connection, "close");
-			rr->setHeader(http::Header::Forwarded, inf.to_string());
+			auto fwd = rr->getHeader(http::Header::Forwarded);
+			rr->setHeader(http::Header::Forwarded, fwd.has_value() ? *fwd + "," + inf.to_string() : inf.to_string());
 			return sprr(rr, resp, 0);
 		}
 };
@@ -76,7 +77,8 @@ class PooledProxyingServer : public IServer {
 		}
 		void take(const ConnectionInfo& inf, redips::http::SharedRRaw rr, RespBack resp) override {
 			rr->setHeader(http::Header::Connection, "keep-alive");
-			rr->setHeader(http::Header::Forwarded, inf.to_string());
+			auto fwd = rr->getHeader(http::Header::Forwarded);
+			rr->setHeader(http::Header::Forwarded, fwd.has_value() ? *fwd + "," + inf.to_string() : inf.to_string());
 			return sprr(rr, resp, 0);
 		}
 };
