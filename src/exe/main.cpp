@@ -51,7 +51,7 @@ int main(int argc, char* args[]){
 	yasync::io::SystemNetworkingStateControl _sysnet;
 	yasync::io::ssl::SSLStateControl _ssl;
 	{
-		yasync::Yengine engine(4);
+		yasync::Yengine engine(1);
 		auto timeToStahpRes = yasync::io::CtrlC::on(&engine);
 		if(auto err = timeToStahpRes.err()){
 			std::cerr << "failed to set up ctrl+c listener: " << *err << "\n";
