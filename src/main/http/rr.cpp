@@ -86,7 +86,10 @@ RRReadResult RR::readHeaders(const std::string& s){
 		std::size_t hvs = colsep+1;
 		for(; hvs < nhe && std::isspace(s[hvs]); hvs++);
 		if(hvs == nhe) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
-		setHeader(s.substr(hns, hne+1-hns), s.substr(hvs, nhe-hvs));
+		std::size_t hve = nhe;
+		for(; hve > hvs && std::isspace(s[hve]); hve--);
+		if(hve == hvs) return RRReadError(Status::BAD_REQUEST, "Malformed header line"); 
+		setHeader(s.substr(hns, hne+1-hns), s.substr(hvs, hve+1-hvs));
 		nhs = nhe+2;
 	}
 	auto clh = getHeader(Header::ContentLength);
