@@ -132,7 +132,6 @@ int main(int argc, char* args[]){
 			}
 			std::unordered_map<IPp, virt::R1otBuilder> terms;
 			std::unordered_map<IPp, HostMapper<yasync::io::ssl::SharedSSLContext>> sslctx;
-			std::optional<virt::SServer> defho;
 			for(auto vhost : config.vhosts){
 				if(!okay) break;
 				auto stackr = std::visit(overloaded {
@@ -151,10 +150,9 @@ int main(int argc, char* args[]){
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack), vhost.mode.index() == 1);
 				auto fiz = &terms[vhost.address];
 				fiz->addService(vhost.tok(), stack);
-				if(vhost.isDefault) defho = stack;
+				if(vhost.isDefault) fiz->setDefaultService(stack);
 				if(auto ssl = vhost.tls) yasync::io::ssl::createSSLContext(ssl->cert, ssl->key) >> ([&](auto sctx){ sslctx[vhost.address].addHost(sctx, vhost.tok()); }|[&](auto err){ std::cerr << "Failed to initalize VHost ssl context: " << err << "\n"; });
 			}
-			if(auto dvh = defho) for(auto &fiz : terms) fiz.second.setDefaultService(*dvh);
 			for(auto ent : terms){
 				if(!okay) break;
 				(sslctx.count(ent.first) > 0 ? fiz::listenOnSecure(&ioengine, ent.first, sslctx[ent.first], &conca, ent.second.build()) : fiz::listenOn(&ioengine, ent.first, &conca, ent.second.build())) >> ([&](fiz::SListener li){
