@@ -31,7 +31,7 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 				respb(http::Response(http::Status::INTERNAL_SERVER_ERROR, err));
 			});
 		}
-	}|[&](auto err){ respb(http::Response(http::Status::BAD_REQUEST)); });
+	}|[&](auto){ respb(http::Response(http::Status::BAD_REQUEST)); });
 }
 
 }
