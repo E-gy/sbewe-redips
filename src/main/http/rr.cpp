@@ -35,7 +35,9 @@ yasync::Future<RRReadResult> RR::read(SharedRR rr, yasync::io::IOResource res){
 			auto pr = rr->readHeaders(*rres.ok());
 			if(pr.isErr()) return yasync::completed(std::move(pr));
 			auto bls = rr->getHeader(Header::ContentLength);
-			std::size_t bl = bls.has_value() ? std::stoull(*bls) : 0;
+			size_t ble = 0;
+			std::size_t bl = bls.has_value() ? std::stoull(*bls, &ble) : 0;
+			if(bls.has_value() && ble == 0) return yasync::completed(RRReadResult::Err(RRReadError(Status::BAD_REQUEST, "Invalid Content-Length")));
 			if(bl == 0) return yasync::completed(RRReadResult::Ok());
 			return res->read<std::vector<char>>(bl) >> [=](auto rres){
 				if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
