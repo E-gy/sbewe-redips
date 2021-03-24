@@ -47,8 +47,8 @@ void to_json(json& j, const TLS& tls){
 void from_json(const json& j, TLS& tls){
 	j.at("ssl_cert").get_to(tls.cert);
 	j.at("ssl_key").get_to(tls.key);
-	if(getFileType(tls.cert) != FileType::File) throw json::type_error::create(301, "Specified TLS cert file does not exist"); 
-	if(getFileType(tls.key) != FileType::File) throw json::type_error::create(301, "Specified TLS key file does not exist"); 
+	if(getFileType(tls.cert) != FileType::File) throw json::type_error::create(301, "Specified TLS cert file does not exist");
+	if(getFileType(tls.key) != FileType::File) throw json::type_error::create(301, "Specified TLS key file does not exist");
 }
 
 void to_json(json& j, const BasicAuth& auth){
