@@ -78,18 +78,15 @@ RRReadResult RR::readHeaders(const std::string& s){
 		if(nhe == std::string::npos) return RRReadError(Status::BAD_REQUEST, "Malformed headers");
 		if(nhe == nhs) break; //reached body
 		auto colsep = s.find(':', nhs);
-		if(colsep == std::string::npos || colsep > nhe) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
-		std::size_t hns = nhs;
-		for(; hns < colsep && std::isspace(s[hns]); hns++);
-		if(hns == colsep) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
-		std::size_t hne = colsep-1;
-		for(; hne > hns && std::isspace(s[hne]); hne--);
+		if(colsep == std::string::npos || colsep > nhe || colsep == nhs) return RRReadError(Status::BAD_REQUEST, "Malformed header line: no name:value separation");
+		auto hname = s.substr(nhs, colsep-nhs);
+		for(auto c : hname) if(std::isspace(c)) return RRReadError(Status::BAD_REQUEST, "Malformed header line: header name must not contain whitespace");
 		std::size_t hvs = colsep+1;
 		for(; hvs < nhe && std::isspace(s[hvs]); hvs++);
 		if(hvs == nhe) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
 		std::size_t hve = nhe;
 		for(; hve > hvs && std::isspace(s[hve]); hve--);
-		setHeader(s.substr(hns, hne+1-hns), s.substr(hvs, hve+1-hvs));
+		setHeader(hname, s.substr(hvs, hve+1-hvs));
 		nhs = nhe+2;
 	}
 	auto clh = getHeader(Header::ContentLength);
