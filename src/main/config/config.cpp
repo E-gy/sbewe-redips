@@ -16,6 +16,7 @@ void to_json(json& j, const IPp& ip){
 void from_json(const json& j, IPp& ip){
 	j.at("ip").get_to(ip.ip);
 	j.at("port").get_to(ip.port);
+	if(!isValidIP(ip.ip)) throw json::type_error::create(301, "Address string is not a valid ip address");
 	if(!isValidPort(ip.port)) throw json::type_error::create(301, "Port number out of bounds");
 }
 
@@ -119,7 +120,6 @@ void to_json(json& j, const VHost& vh){
 
 void from_json(const json& j, VHost& vh){
 	j.get_to(vh.address);
-	if(!isValidIP(vh.address.ip)) throw json::type_error::create(301, "Address string is not a valid ip address");
 	j.at("server_name").get_to(vh.serverName);
 	if(j.contains("proxy_pass"))
 		if(j.contains("root") || j.contains("defaultFile")) throw json::type_error::create(301, "Both file server and proxied mode specified");
