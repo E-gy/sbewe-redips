@@ -4,6 +4,7 @@
 #include <ctime>
 #include <cstring>
 #include <iomanip>
+#include <regex>
 
 namespace redips::fiz {
 
@@ -11,7 +12,12 @@ using namespace magikop;
 using namespace http;
 
 inline bool keepAlive(RR& rr){
-	if(auto conn = rr.getHeader(Header::Connection)) if(conn->find("close") != std::string::npos) return false;
+	if(auto conn = rr.getHeader(Header::Connection)){
+		if(*conn == "close") return false;
+		std::regex clore("(^|\\W)close($|\\W)");
+		std::cmatch m;
+		if(std::regex_search(conn->c_str(), m, clore)) return false;
+	}
 	return true;
 }
 
