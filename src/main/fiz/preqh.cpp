@@ -60,7 +60,10 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 				std::cerr << "Failed to respond: " << err << "\n";
 			});
 		});
-	}|[](auto err){ std::cerr << "Read request error " << err.desc << "\n"; });
+	}|[=](auto err){
+		unsetIdle(conn);
+		std::cerr << "Read request error " << err.desc << "\n";
+	});
 }
 
 }
