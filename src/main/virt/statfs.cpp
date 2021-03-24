@@ -19,7 +19,7 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 		relp += eop == std::string::npos ? req.path : req.path.substr(0, eop);
 		if(relp[relp.length()-1] == '/') relp += deff;
 		else if(getFileType(relp) == FileType::Directory) relp += FPATHSEP + deff;
-		if(getFileType(relp) != FileType::File) respb(http::Response(http::Status::NOT_FOUND, "File not found :("));
+		if(getFileType(relp) != FileType::File) respb(http::Response(http::Status::NOT_FOUND));
 		else {
 			yasync::io::fileOpenRead(engine, relp) >> ([=](auto f){
 				engine->engine <<= (f->template read<std::vector<char>>()) >> ([=](auto ok){
