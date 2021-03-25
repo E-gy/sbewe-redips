@@ -154,7 +154,10 @@ void to_json(json& j, const Uphost& uh){
 void from_json(const json& j, Uphost& uh){
 	j.get_to(uh.address);
 	if(j.contains("weight")) if(*(uh.weight = j.at("weight").get<unsigned>()) == 0) throw json::type_error::create(301, "Weight can't be 0");
-	if(j.contains("health")) uh.healthCheckUrl = j.at("health").get<std::string>();
+	if(j.contains("health")){
+		uh.healthCheckUrl = j.at("health").get<std::string>();
+		if(uh.healthCheckUrl->length() == 0 || (*uh.healthCheckUrl)[0] != '/') throw json::type_error::create(301, "Invalid health check url");
+	}
 }
 
 void to_json(json& j, const Upstream& u){
