@@ -37,8 +37,8 @@ HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::
 		sah->store(h);
 	};
 	auto conok = [=](){
-		if(interval/5 > MISSINGT && sah->load() == Health::Alive) interim->tM = ticktack.sleep(MISSINGT, [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
-		interim->tD = ticktack.sleep(interval/5, [interim](auto, bool cancel){
+		if(interval/10 > MISSINGT && sah->load() == Health::Alive) interim->tM = ticktack.sleep(MISSINGT, [sah](auto, bool cancel){ if(!cancel) sah->store(Health::Missing); });
+		interim->tD = ticktack.sleep(interval/10, [interim](auto, bool cancel){
 			if(!cancel){
 				if(interim->conn) interim->conn->cancel();
 				else interim->sah->store(Health::Dead);
@@ -82,7 +82,7 @@ HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::
 }
 
 result<HealthMonitor::SAH, std::string> HealthMonitor::add(const IPp& ipp, const std::string& path){
-	return findConnectionFactory(ipp, engine, &ticktack, interval/5) >> ([=](auto estconn) -> result<HealthMonitor::SAH, std::string> {
+	return findConnectionFactory(ipp, engine, &ticktack, interval/10) >> ([=](auto estconn) -> result<HealthMonitor::SAH, std::string> {
 		return _add(std::move(estconn), path);
 	}|[=](auto err) -> result<HealthMonitor::SAH, std::string> {
 		return err;
