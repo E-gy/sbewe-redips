@@ -181,6 +181,7 @@ int main(int argc, char* args[]){
 		}
 		yasync::io::CtrlC::un(&engine);
 		engine.wle();
+		std::cout << "Goodbye/\n";
 	}
 	return 0;
 }
