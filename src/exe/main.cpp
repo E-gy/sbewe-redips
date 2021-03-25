@@ -88,7 +88,7 @@ int main(int argc, char* args[]){
 						break;
 					}
 					case LoadBalancingMethod::FailOver:{
-						auto bal = std::make_shared<virt::FailOverBalancer<virt::ProxyConnectionFactory>>(&lbhmon, true);
+						auto bal = std::make_shared<virt::FailOverBalancer<virt::ProxyConnectionFactory>>(&lbhmon);
 						for(auto h : u.second.hosts){
 							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout);
 							if(auto err = hpfr.err()){
@@ -106,7 +106,7 @@ int main(int argc, char* args[]){
 						break;
 					}
 					case LoadBalancingMethod::FailRobin:{
-						auto bal = std::make_shared<virt::FailRobinBalancer<virt::ProxyConnectionFactory>>(&lbhmon, true);
+						auto bal = std::make_shared<virt::FailRobinBalancer<virt::ProxyConnectionFactory>>(&lbhmon);
 						for(auto h : u.second.hosts){
 							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout);
 							if(auto err = hpfr.err()){
