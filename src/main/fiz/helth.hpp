@@ -30,8 +30,8 @@ inline auto& operator<<(std::ostream& os, Health h){ return os << healthToStr(h)
  * Health status monitor.
  * A health check is performed regularly.
  * A health may complete early indicating resp. health (DoA) status.
- * If the check takes longer than 500ms, the status is declared missing.
- * If the check takes longer than 1/10th of the check interval, it is cancelled and status is declared dead.
+ * If the check takes longer than 1000ms, the status is declared missing.
+ * If the check takes longer than 1/5th of the check interval, it is cancelled and status is declared dead.
  */
 class HealthMonitor {
 	yasync::io::IOYengine* engine;
@@ -41,7 +41,7 @@ class HealthMonitor {
 		HealthMonitor(yasync::io::IOYengine*, yasync::TickTack::Duration);
 		void shutdown();
 		using SAH = std::shared_ptr<std::atomic<Health>>;
-		static constexpr auto MISSINGT = std::chrono::milliseconds(500);
+		static constexpr auto MISSINGT = std::chrono::milliseconds(1000);
 		result<SAH, std::string> add(const IPp&, const std::string&);
 	private:
 		SAH _add(ConnectionFactory &&, const std::string&);
