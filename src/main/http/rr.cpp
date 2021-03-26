@@ -114,7 +114,7 @@ RRReadResult Request::readTitle(const std::string& l){
 		else return RRReadError(*v == http::Version::HTTP10 || *v == http::Version::HTTP09 ? Status::UPGRADE_REQUIRED : Status::HTTP_VERSION_NOT_SUPPORTED, "Unsupported HTTP version");
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
 	if(auto m = methodFromStr(ms)) method = *m;
-	else return RRReadError(Status::BAD_REQUEST, "Invalid HTTP method");
+	else return RRReadError(Status::METHOD_NOT_ALLOWED, "Invalid HTTP method");
 	if(ps.length() == 0 || ps[0] != '/') return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash");
 	path = ps;
 	return RRReadResult::Ok();
