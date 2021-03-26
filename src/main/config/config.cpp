@@ -5,6 +5,7 @@
 #include <util/json.hpp>
 #include <util/filetype.hpp>
 #include <ossl/ssl.hpp>
+#include <openssl/x509v3.h>
 
 using nlohmann::json;
 
@@ -46,12 +47,15 @@ void to_json(json& j, const TLS& tls){
 	j["ssl_cert"] = tls.cert;
 	j["ssl_key"] = tls.key;
 }
-void from_json(const json& j, TLS& tls){
+void from_json(const json& j, TLS& tls, const std::string& host){
 	j.at("ssl_cert").get_to(tls.cert);
 	j.at("ssl_key").get_to(tls.key);
 	if(getFileType(tls.cert) != FileType::File) throw json::type_error::create(301, "Specified TLS cert file does not exist");
 	if(getFileType(tls.key) != FileType::File) throw json::type_error::create(301, "Specified TLS key file does not exist");
-	if(auto sslerr = yasync::io::ssl::createSSLContext(tls.cert, tls.key).errOpt()) throw json::type_error::create(301, "TLS Credentials invalid: " + *sslerr);
+	auto sslr = yasync::io::ssl::createSSLContext(tls.cert, tls.key);
+	if(auto sslerr = sslr.err()) throw json::type_error::create(301, "TLS Credentials invalid: " + *sslerr);
+	auto x509 = ::SSL_CTX_get0_certificate((*sslr.ok())->ctx());
+	if(::X509_check_host(x509, host.c_str(), host.length(), 0, nullptr) != 1) throw json::type_error::create(301, "TLS Certificate host name mismatch");
 }
 
 void to_json(json& j, const BasicAuth& auth){
@@ -125,7 +129,11 @@ void from_json(const json& j, VHost& vh){
 		if(j.contains("root") || j.contains("defaultFile")) throw json::type_error::create(301, "Both file server and proxied mode specified");
 		else vh.mode = j.at("proxy_pass").get<Proxy>();
 	else vh.mode = j.get<FileServer>();
-	if(j.contains("ssl_cert") || j.contains("ssl_key")) vh.tls = j.get<TLS>();
+	if(j.contains("ssl_cert") || j.contains("ssl_key")){
+		TLS tls;
+		from_json(j, tls, vh.serverName);
+		vh.tls = tls;
+	}
 	if(j.contains("auth_basic") || j.contains("auth_basic_users")) vh.auth = j.get<BasicAuth>();
 	if(j.contains("default_vhost")) j.at("default_vhost").get_to(vh.isDefault);
 }
