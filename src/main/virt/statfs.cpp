@@ -15,7 +15,7 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 		if(req.method != http::Method::HEAD && req.method != http::Method::GET && req.method != http::Method::POST) return respb(http::Response(http::Status::METHOD_NOT_ALLOWED));
 		auto relp = root;
 		if(relp[relp.length()-1] != FPATHSEP) relp += '/';
-		auto eop = req.path.find('?');
+		auto eop = std::min(req.path.find('?'), req.path.find('#'));
 		relp += eop == std::string::npos ? req.path : req.path.substr(0, eop);
 		if(relp[relp.length()-1] == '/') relp += deff;
 		else if(getFileType(relp) == FileType::Directory) relp += FPATHSEP + deff;
