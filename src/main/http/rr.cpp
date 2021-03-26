@@ -83,10 +83,9 @@ RRReadResult RR::readHeaders(const std::string& s){
 		for(auto c : hname) if(std::isspace(c)) return RRReadError(Status::BAD_REQUEST, "Malformed header line: header name must not contain whitespace");
 		std::size_t hvs = colsep+1;
 		for(; hvs < nhe && std::isspace(s[hvs]); hvs++);
-		if(hvs == nhe) return RRReadError(Status::BAD_REQUEST, "Malformed header line");
 		std::size_t hve = nhe;
 		for(; hve > hvs && std::isspace(s[hve]); hve--);
-		setHeader(hname, s.substr(hvs, hve+1-hvs));
+		setHeader(hname, hvs < nhe ? s.substr(hvs, hve+1-hvs) : ""); //https://bugzilla.mozilla.org/show_bug.cgi?id=474845
 		nhs = nhe+2;
 	}
 	auto clh = getHeader(Header::ContentLength);
