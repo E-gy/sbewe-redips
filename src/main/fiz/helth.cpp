@@ -24,7 +24,9 @@ struct Interim {
 	IOResource conn;
 	http::Request req;
 	HealthMonitor::SAH sah;
-	Interim(ConnectionFactory && e, const std::string& path, HealthMonitor::SAH s) : estconn(std::move(e)), req(http::Method::GET, path), sah(s) {}
+	Interim(ConnectionFactory && e, const std::string& path, HealthMonitor::SAH s) : estconn(std::move(e)), req(http::Method::GET, path), sah(s) {
+		req.setHeader(http::Header::Connection, "keep-alive");
+	}
 };
 
 HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::string& path){
@@ -71,6 +73,7 @@ HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::
 			if(interim->conn) conok();
 			else engine->engine <<= interim->estconn() >> ([=](auto conn){
 				interim->conn = conn.first;
+				interim->req.setHeader(http::Header::Host, conn.second.ip);
 				conok();
 			}|[=](auto err){
 				std::cerr << "Health check connection establish failed: " << err << "\n";
