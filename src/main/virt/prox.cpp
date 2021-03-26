@@ -1,5 +1,7 @@
 #include "prox.hpp"
 
+#include <util/strim.hpp>
+
 namespace redips::virt {
 
 using namespace yasync;
@@ -18,6 +20,16 @@ class ProxyingServer : public IServer {
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
 			engine <<= cf() >> ([=](auto pair){
 				RRaw rr(*rra);
+				if(auto conn = rr.getHeader(Header::Connection)){
+					auto hbhrem = *conn;
+					for(std::size_t sp = 0; sp < hbhrem.length();){
+						auto e = hbhrem.find(',', sp);
+						auto hbhh = hbhrem.substr(sp, e == std::string::npos ? e : e-sp);
+						trim(hbhh);
+						rr.removeHeader(hbhh);
+						sp = e == std::string::npos ? e : e+1;
+					}
+				}
 				rr.setHeader(Header::Connection, "close");
 				if(!rr.hasHeader(Header::Host)) rr.setHeader(Header::Host, pair.second.ip);
 				auto conn = pair.first;
@@ -56,6 +68,16 @@ class PooledProxyingServer : public IServer {
 			using rDecay = result<http::SharedRRaw, http::RRReadError>;
 			engine <<= cf() >> ([=](auto pair){
 				RRaw rr(*rra);
+				if(auto conn = rr.getHeader(Header::Connection)){
+					auto hbhrem = *conn;
+					for(std::size_t sp = 0; sp < hbhrem.length();){
+						auto e = hbhrem.find(',', sp);
+						auto hbhh = hbhrem.substr(sp, e == std::string::npos ? e : e-sp);
+						trim(hbhh);
+						rr.removeHeader(hbhh);
+						sp = e == std::string::npos ? e : e+1;
+					}
+				}
 				rr.setHeader(Header::Connection, "keep-alive");
 				if(!rr.hasHeader(Header::Host)) rr.setHeader(Header::Host, pair.second.ip);
 				auto conn = pair.first;
