@@ -74,7 +74,7 @@ void from_json(const json& j, BasicAuth& auth){
 		if(sep == 0) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}` with non-empty username");
 		auto uname = c.substr(0, sep);
 		// auto pass = c.substr(sep+1);
-		if(credz.find(uname) != credz.end()) throw json::type_error::create(301, "Duplicate user credentials (for '" + uname + "'");
+		if(credz.find(uname) != credz.end()) throw json::type_error::create(301, "Duplicate user credentials (for '" + uname + "')");
 		credz.insert(uname);
 	}
 }
