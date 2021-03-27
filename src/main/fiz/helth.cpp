@@ -25,7 +25,7 @@ struct Interim {
 	http::Request req;
 	HealthMonitor::SAH sah;
 	Interim(ConnectionFactory && e, const std::string& path, HealthMonitor::SAH s) : estconn(std::move(e)), req(http::Method::GET, path), sah(s) {
-		req.setHeader(http::Header::Connection, "keep-alive");
+		req.setHeader(http::Header::Connection, "close");
 	}
 };
 
@@ -57,6 +57,7 @@ HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::
 					std::cerr << "Health check self reported not OK\n";
 					shr(Health::Dead);
 				}
+				interim->conn.reset();
 			}|[=](auto err){
 				std::cerr << "Health check read error: " << err.desc << "\n";
 				interim->conn.reset();
