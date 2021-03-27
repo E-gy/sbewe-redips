@@ -13,10 +13,7 @@ class R1oter : public IServer {
 	public:
 		friend class R1otBuilder;
 		void take(const ConnectionInfo& conn, redips::http::SharedRRaw req, RespBack respb) override {
-			if(auto host = req->getHeader(http::Header::Host)) if(*host != ""){
-				if(auto serv = services.resolve(*host)) return (*serv)->take(conn, req, respb);
-				else return respb(http::Response(http::Status::BAD_REQUEST));
-			}
+			if(auto host = req->getHeader(http::Header::Host)) if(auto serv = services.resolve(*host)) return (*serv)->take(conn, req, respb);
 			if(defolt) return (*defolt)->take(conn, req, respb);
 			return respb(http::Response(http::Status::BAD_REQUEST));
 		}
