@@ -66,10 +66,15 @@ void from_json(const json& j, BasicAuth& auth){
 	j.at("auth_basic").get_to(auth.realm);
 	j.at("auth_basic_users").get_to(auth.credentials);
 	if(auth.realm.find('"') != std::string::npos) throw json::type_error::create(301, "Auth realm must not contain quotation marks");
+	std::unordered_set<std::string> credz;
 	for(auto c : auth.credentials){
 		auto sep = c.find(':');
 		if(sep == std::string::npos) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}");
 		if(sep == 0) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}` with non-empty username");
+		auto uname = c.substr(0, sep);
+		// auto pass = c.substr(sep+1);
+		if(credz.find(uname) != credz.end()) throw json::type_error::create(301, "Duplicate user credentials (for '" + uname + "'");
+		credz.insert(uname);
 	}
 }
 
