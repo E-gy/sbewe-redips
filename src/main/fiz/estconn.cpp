@@ -20,7 +20,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> auto createCo
 				if(tr.isOk() || t >= shora){
 					conne->completed(std::move(tr));
 					engine->engine->notify(conne);
-				} else ticktack->sleep(timeout/20, [=](auto, bool cancel){
+				} else ticktack->sleep(timeout/15, [=](auto, bool cancel){
 					if(!cancel) return re(re, t+1);
 					else {
 						conne->completed(ConnectionFactoryResult::Err("Retry cancelled lol"));
