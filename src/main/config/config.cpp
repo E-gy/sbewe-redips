@@ -66,7 +66,6 @@ void from_json(const json& j, BasicAuth& auth){
 	j.at("auth_basic").get_to(auth.realm);
 	j.at("auth_basic_users").get_to(auth.credentials);
 	if(auth.realm.find('"') != std::string::npos) throw json::type_error::create(301, "Auth realm must not contain quotation marks");
-	if(auth.credentials.size() == 0) throw json::type_error::create(301, "Auth empty user credentials set renders resource inaccessible");
 	std::unordered_set<std::string> credz;
 	for(auto c : auth.credentials){
 		auto sep = c.find(':');
