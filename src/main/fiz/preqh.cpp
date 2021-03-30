@@ -64,7 +64,11 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 			std::cerr << "Received hung up conn.\n";
 			return;
 		}
-		conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
+		auto transT = toTrans ? ticktack->sleep(*toTrans, [=](auto, bool cancel){ if(!cancel) conn->cancel(); }) : ticktack->UnId;
+		conn->engine <<= RRaw::read(conn) >> [=](auto rr){
+			ticktack->stop(transT);
+			return rr;
+		} >> ([=](SharedRRaw reqwest){
 			const bool rkal = keepAlive(*reqwest);
 			vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
 				auto wr = conn->writer();
@@ -91,6 +95,16 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 				resp.write(wr);
 				conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
 					std::cerr << "Failed to inform client of malformed request: " << err << "\n";
+				});
+			} else if(beginsWith(err.desc, "Operation cancelled")){
+				Response resp(http::Status::REQUEST_TIMEOUT);
+				resp.setHeader(Header::Date, timestamp());
+				resp.setHeader(Header::Connection, "closed");
+				resp.setHeader(Header::TimeoutReason, "Transaction");
+				auto wr = conn->writer();
+				resp.write(wr);
+				conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
+					std::cerr << "Failed to inform client of transmission timeout: " << err << "\n";
 				});
 			} else std::cerr << "Read request error " << err.desc << "\n";
 		});
