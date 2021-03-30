@@ -11,6 +11,8 @@ namespace redips::fiz {
 using namespace magikop;
 using namespace http;
 
+ConnectionCare::ConnectionCare(yasync::TickTack* t, std::optional<yasync::TickTack::Duration> idle, std::optional<yasync::TickTack::Duration> trans) : ticktack(t), toIdle(idle), toTrans(trans){}
+
 inline bool keepAlive(RR& rr){
 	if(auto conn = rr.getHeader(Header::Connection)){
 		if(*conn == "close") return false;

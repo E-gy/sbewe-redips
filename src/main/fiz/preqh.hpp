@@ -2,16 +2,21 @@
 
 #include <virt/vservr.hpp>
 #include <unordered_set>
+#include <yasync/ticktack.hpp>
 
 namespace redips::fiz {
 
 class ConnectionCare {
+	yasync::TickTack* ticktack;
+	std::optional<yasync::TickTack::Duration> toIdle;
+	std::optional<yasync::TickTack::Duration> toTrans;
 	bool sdown = false;
 	std::mutex idlok;
 	std::unordered_set<yasync::io::IOResource> idle;
 	void setIdle(yasync::io::IOResource);
 	void unsetIdle(yasync::io::IOResource);
 	public:
+		ConnectionCare(yasync::TickTack*, std::optional<yasync::TickTack::Duration> toIdle, std::optional<yasync::TickTack::Duration> toTrans);
 		/**
 		 * Initiates care shut down.
 		 * All idle `keep-alive` connections are closed.

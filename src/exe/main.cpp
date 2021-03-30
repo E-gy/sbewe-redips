@@ -64,7 +64,7 @@ int main(int argc, char* args[]){
 			yasync::io::IOYengine ioengine(&engine);
 			yasync::TickTack ticktack;
 			fiz::HealthMonitor lbhmon(&ioengine, std::chrono::seconds(12));
-			fiz::ConnectionCare conca;
+			fiz::ConnectionCare conca(&ticktack, config.timings.keepAlive ? std::optional{std::chrono::seconds(*config.timings.keepAlive)} : std::nullopt, config.timings.transaction ? std::optional{std::chrono::seconds(*config.timings.transaction)} : std::nullopt);
 			std::shared_ptr<std::list<fiz::SListener>> lists(new std::list<fiz::SListener>());
 			bool okay = true;
 			//--
