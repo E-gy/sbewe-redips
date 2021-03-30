@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iomanip>
 #include <regex>
+#include <util/strim.hpp>
 
 namespace redips::fiz {
 
@@ -45,8 +46,14 @@ void ConnectionCare::shutdown(){
 void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	auto conn = inf.connection;
 	setIdle(conn);
-	conn->engine <<= conn->peek<std::vector<char>>(1) >> ([=](auto rd){
-	unsetIdle(conn);
+	auto idleT = toIdle ? ticktack->sleep(*toIdle, [=](auto, bool cancel){
+		if(!cancel) conn->cancel();
+	}) : ticktack->UnId;
+	conn->engine <<= conn->peek<std::vector<char>>(1) >> [=](auto pr){
+		unsetIdle(conn);
+		ticktack->stop(idleT);
+		return pr;
+	} >> ([=](auto rd){
 	if(rd.size() == 0){
 		std::cerr << "Received hung up conn.\n";
 		return;
@@ -74,7 +81,6 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 			});
 		});
 	}|[=](auto err){
-		unsetIdle(conn);
 		if(err.asstat){
 			Response resp(*err.asstat);
 			{
@@ -91,8 +97,21 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 		} else std::cerr << "Read request error " << err.desc << "\n";
 	});
 	}|[=](auto err){
-		unsetIdle(conn);
-		std::cerr << "Idle conn peek error " << err << "\n";
+		if(beginsWith(err, "Operation cancelled")){
+			Response resp(http::Status::REQUEST_TIMEOUT);
+			{
+				auto t = std::time(nullptr);
+				auto tm = *std::gmtime(&t); //FIXME not thread-safe
+				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
+			}
+			resp.setHeader(Header::Connection, "closed");
+			resp.setHeader(Header::TimeoutReason, "Keep-Alive");
+			auto wr = conn->writer();
+			resp.write(wr);
+			conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
+				std::cerr << "Failed to inform client of idle timeout: " << err << "\n";
+			});
+		} else std::cerr << "Idle conn peek error " << err << "\n";
 	});
 }
 
