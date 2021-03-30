@@ -119,24 +119,41 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 		struct ListenEvent {
 			ListenEventType type;
 			syserr_t err;
+			#ifdef _WIN32
+			#else
+			int conn;
+			AddressInfo connAddr;
+			#endif
 		};
 		std::shared_ptr<OutsideFuture<ListenEvent>> engif;
 		void notify(ListenEvent e){
 			engif->completed(std::move(e));
 			engine->engine->notify(engif);
 		}
-		void notify(ListenEventType e){ notify(ListenEvent{e, 0}); }
 		#ifdef _WIN32
-		void notify(syserr_t e){ notify(ListenEvent{ListenEventType::Error, e}); }
+		void notifyAccept(){ notify(ListenEvent{ListenEventType::Accept, 0}); }
+		void notifyErr(syserr_t e){ notify(ListenEvent{ListenEventType::Error, e}); }
+		void notifyClose(){ notify(ListenEvent{ListenEventType::Close, 0}); }
+		#else
+		void notifyAccept(int conn, AddressInfo remote){ notify(ListenEvent{ListenEventType::Accept, 0, conn, remote}); }
+		void notifyErr(syserr_t e){ notify(ListenEvent{ListenEventType::Error, e, 0, {}}); }
+		void notifyClose(){ notify(ListenEvent{ListenEventType::Close, 0, 0, {}}); }
 		#endif
 		syserr_t lerr;
 		void notify(IOCompletionInfo inf) override {
 			#ifdef _WIN32
-			if(!inf.status) notify(inf.lerr);
-			else notify(ListenEventType::Accept);
+			if(!inf.status) notifyErr(inf.lerr);
+			else notifyAccept();
 			#else
-			if(inf == EPOLLIN) notify(ListenEventType::Accept);
-			else notify(ListenEvent{ListenEventType::Error, errno});
+			if(inf == EPOLLIN){
+				std::cout << "Accept in event!\n";
+				AddressInfo remote;
+				socklen_t remlen = sizeof(remote); 
+				auto conn = ::accept(sock, reinterpret_cast<sockaddr*>(&remote), &remlen);
+				std::cout << conn << "\n";
+				if(conn < 0) notifyErr(errno);
+				else notifyAccept(conn, remote);
+			} else notifyErr(errno);
 			#endif
 		}
 		void cancel() override {} //Doesn't make much sense...	Use shutdown to stop listening.
@@ -189,7 +206,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 			// return retSysNetError<ListenResult>("listen failed");
 			{
 				::epoll_event epm;
-				epm.events = EPOLLIN|EPOLLONESHOT;
+				epm.events = EPOLLIN;
 				epm.data.ptr = this;
 				if(::epoll_ctl(engine->ioPo->rh, EPOLL_CTL_ADD, sock, &epm) < 0) return retSysError<ListenResult>("epoll add failed");
 			}
@@ -203,6 +220,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 				};
 				if(engif->state() == FutureState::Completed){
 					auto event = engif->running();
+					std::cout << "it completed!\n";
 					switch(event.type){
 						case ListenEventType::Accept:{
 							#ifdef _WIN32
@@ -210,7 +228,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 								if(erracc(self, ::WSAGetLastError(), "Set accepting socket accept failed")) return stahp();
 							} else acceptor(linterloc.remote.addr, engine->taek(HandledResource(std::move(lconn))));
 							#else
-							bool goAsync = false;
+							/*bool goAsync = false;
 							while(!goAsync){
 								AddressInfo remote;
 								socklen_t remlen = sizeof(remote); 
@@ -229,7 +247,9 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 									case ECONNABORTED: break;
 									default: if(erracc(self, errno, "accept failed")) return stahp();
 								}
-							}
+							}*/
+							::read(event.conn, nullptr, 0);
+							acceptor(event.connAddr, engine->taek(HandledResource(HandledStrayIOSocket(new AHandledStrayIOSocket(event.conn)))));
 							#endif
 							break;
 						}
@@ -264,12 +284,12 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 					}
 				}
 				#else
-				{
+				/*{
 					::epoll_event epm;
 					epm.events = EPOLLIN|EPOLLONESHOT;
 					epm.data.ptr = this;
 					if(::epoll_ctl(engine->ioPo->rh, EPOLL_CTL_MOD, sock, &epm) < 0) if(erracc(self, errno, "EPoll rearm failed")) return stahp();
-				}
+				}*/
 				#endif
 				return AFuture(engif);
 			}, 0)));
@@ -279,7 +299,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo, typename Errs
 		 * No new connections will be accepted from this point on. 
 		 */
 		void shutdown(){
-			notify(ListenEventType::Close);
+			notifyClose();
 		}
 };
 
