@@ -43,6 +43,14 @@ void ConnectionCare::shutdown(){
 	for(auto conn : ridle) conn->cancel();
 }
 
+static std::string timestamp(){
+	auto t = std::time(nullptr);
+	auto tm = *std::gmtime(&t); //FIXME not thread-safe
+	std::ostringstream tf;
+	tf << std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z");
+	return tf.str();
+}
+
 void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	auto conn = inf.connection;
 	setIdle(conn);
@@ -62,11 +70,7 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 		const bool rkal = keepAlive(*reqwest);
 		vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
 			auto wr = conn->writer();
-			{
-				auto t = std::time(nullptr);
-				auto tm = *std::gmtime(&t); //FIXME not thread-safe
-				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
-			}
+			resp.setHeader(Header::Date, timestamp());
 			bool kal = rkal;
 			{
 				Response respasresp;
@@ -83,11 +87,7 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	}|[=](auto err){
 		if(err.asstat){
 			Response resp(*err.asstat);
-			{
-				auto t = std::time(nullptr);
-				auto tm = *std::gmtime(&t); //FIXME not thread-safe
-				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
-			}
+			resp.setHeader(Header::Date, timestamp());
 			resp.setHeader(Header::Connection, "closed");
 			auto wr = conn->writer();
 			resp.write(wr);
@@ -99,11 +99,7 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	}|[=](auto err){
 		if(beginsWith(err, "Operation cancelled")){
 			Response resp(http::Status::REQUEST_TIMEOUT);
-			{
-				auto t = std::time(nullptr);
-				auto tm = *std::gmtime(&t); //FIXME not thread-safe
-				resp.setHeader(Header::Date, std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z"));
-			}
+			resp.setHeader(Header::Date, timestamp());
 			resp.setHeader(Header::Connection, "closed");
 			resp.setHeader(Header::TimeoutReason, "Keep-Alive");
 			auto wr = conn->writer();
