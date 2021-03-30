@@ -84,10 +84,12 @@ void from_json(const json& j, BasicAuth& auth){
 void to_json(json& j, const FileServer& fs){
 	j["root"] = fs.root;
 	if(fs.defaultFile) j["defaultFile"] = *fs.defaultFile;
+	if(fs.autoindex) j["auto_index"] = *fs.autoindex;
 }
 void from_json(const json& j, FileServer& fs){
 	j.at("root").get_to(fs.root);
 	if(j.contains("default_file")) fs.defaultFile = j.at("default_file").get<std::string>();
+	if(j.contains("auto_index")) fs.autoindex = j.at("auto_index").get<bool>();
 }
 
 void to_json(json& j, const std::string& pref, const HeadMod& hm){
@@ -136,7 +138,7 @@ void from_json(const json& j, VHost& vh){
 	j.get_to(vh.address);
 	j.at("server_name").get_to(vh.serverName);
 	if(j.contains("proxy_pass"))
-		if(j.contains("root") || j.contains("defaultFile")) throw json::type_error::create(301, "Both file server and proxied mode specified");
+		if(j.contains("root") || j.contains("defaultFile") || j.contains("auto_index")) throw json::type_error::create(301, "Both file server and proxied mode specified");
 		else vh.mode = j.at("proxy_pass").get<Proxy>();
 	else vh.mode = j.get<FileServer>();
 	if(j.contains("ssl_cert") || j.contains("ssl_key")){

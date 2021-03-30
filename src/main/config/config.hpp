@@ -36,6 +36,8 @@ struct FileServer {
 	std::string root;
 	/// Default file to serve in the directory if the requested is directory
 	std::optional<std::string> defaultFile;
+	/// Generate index file for directories where default file does not exist
+	std::optional<bool> autoindex;
 };
 struct Proxy {
 	/// configured or anonynous upstream
