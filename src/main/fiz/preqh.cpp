@@ -62,40 +62,40 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 		ticktack->stop(idleT);
 		return pr;
 	} >> ([=](auto rd){
-	if(rd.size() == 0){
-		std::cerr << "Received hung up conn.\n";
-		return;
-	}
-	conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
-		const bool rkal = keepAlive(*reqwest);
-		vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
-			auto wr = conn->writer();
-			resp.setHeader(Header::Date, timestamp());
-			bool kal = rkal;
-			{
-				Response respasresp;
-				if(respasresp.readTitle(resp.title).isOk()) kal &= respasresp.status != Status::BAD_REQUEST && respasresp.status < Status::INTERNAL_SERVER_ERROR;
-			}
-			resp.setHeader(Header::Connection, kal && !sdown ? "keep-alive" : "closed");
-			resp.write(wr);
-			conn->engine <<= wr->eod() >> ([=](){
-				if(kal && !sdown) takeCare(inf, vs); //If shut down is initiated after keep-alive is sent, oh well. May as well close it now.
-			}|[](auto err){
-				std::cerr << "Failed to respond: " << err << "\n";
+		if(rd.size() == 0){
+			std::cerr << "Received hung up conn.\n";
+			return;
+		}
+		conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
+			const bool rkal = keepAlive(*reqwest);
+			vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
+				auto wr = conn->writer();
+				resp.setHeader(Header::Date, timestamp());
+				bool kal = rkal;
+				{
+					Response respasresp;
+					if(respasresp.readTitle(resp.title).isOk()) kal &= respasresp.status != Status::BAD_REQUEST && respasresp.status < Status::INTERNAL_SERVER_ERROR;
+				}
+				resp.setHeader(Header::Connection, kal && !sdown ? "keep-alive" : "closed");
+				resp.write(wr);
+				conn->engine <<= wr->eod() >> ([=](){
+					if(kal && !sdown) takeCare(inf, vs); //If shut down is initiated after keep-alive is sent, oh well. May as well close it now.
+				}|[](auto err){
+					std::cerr << "Failed to respond: " << err << "\n";
+				});
 			});
+		}|[=](auto err){
+			if(err.asstat){
+				Response resp(*err.asstat);
+				resp.setHeader(Header::Date, timestamp());
+				resp.setHeader(Header::Connection, "closed");
+				auto wr = conn->writer();
+				resp.write(wr);
+				conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
+					std::cerr << "Failed to inform client of malformed request: " << err << "\n";
+				});
+			} else std::cerr << "Read request error " << err.desc << "\n";
 		});
-	}|[=](auto err){
-		if(err.asstat){
-			Response resp(*err.asstat);
-			resp.setHeader(Header::Date, timestamp());
-			resp.setHeader(Header::Connection, "closed");
-			auto wr = conn->writer();
-			resp.write(wr);
-			conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
-				std::cerr << "Failed to inform client of malformed request: " << err << "\n";
-			});
-		} else std::cerr << "Read request error " << err.desc << "\n";
-	});
 	}|[=](auto err){
 		if(beginsWith(err, "Operation cancelled")){
 			Response resp(http::Status::REQUEST_TIMEOUT);
