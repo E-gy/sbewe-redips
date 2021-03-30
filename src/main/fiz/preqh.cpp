@@ -43,8 +43,13 @@ void ConnectionCare::shutdown(){
 void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	auto conn = inf.connection;
 	setIdle(conn);
+	conn->engine <<= conn->peek<std::vector<char>>(1) >> ([=](auto rd){
+	unsetIdle(conn);
+	if(rd.size() == 0){
+		std::cerr << "Received hung up conn.\n";
+		return;
+	}
 	conn->engine <<= RRaw::read(conn) >> ([=](SharedRRaw reqwest){
-		unsetIdle(conn);
 		const bool rkal = keepAlive(*reqwest);
 		vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
 			auto wr = conn->writer();
@@ -82,6 +87,10 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 				std::cerr << "Failed to inform client of malformed request: " << err << "\n";
 			});
 		} else std::cerr << "Read request error " << err.desc << "\n";
+	});
+	}|[=](auto err){
+		unsetIdle(conn);
+		std::cerr << "Idle conn peek error " << err << "\n";
 	});
 }
 
