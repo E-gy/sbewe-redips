@@ -54,9 +54,7 @@ static std::string timestamp(){
 void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 	auto conn = inf.connection;
 	setIdle(conn);
-	auto idleT = toIdle ? ticktack->sleep(*toIdle, [=](auto, bool cancel){
-		if(!cancel) conn->cancel();
-	}) : ticktack->UnId;
+	auto idleT = toIdle ? ticktack->sleep(*toIdle, [=](auto, bool cancel){ if(!cancel) conn->cancel(); }) : ticktack->UnId;
 	conn->engine <<= conn->peek<std::vector<char>>(1) >> [=](auto pr){
 		unsetIdle(conn);
 		ticktack->stop(idleT);
