@@ -135,7 +135,7 @@ int main(int argc, char* args[]){
 			for(auto vhost : config.vhosts){
 				if(!okay) break;
 				auto stackr = std::visit(overloaded {
-					[&](const config::FileServer& fs) -> result<virt::SServer, std::string> { return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"))); },
+					[&](const config::FileServer& fs) -> result<virt::SServer, std::string> { return virt::SServer(new virt::StaticFileServer(&ioengine, fs.root, fs.defaultFile.value_or("index.html"), fs.autoindex.value_or(false))); },
 					[&](const config::Proxy& prox){ return std::visit(overloaded {
 						[&](const IPp& ipp){ return fiz::findConnectionFactory(ipp, &ioengine, &ticktack, estconntimeout).mapOk([&](auto connf){ return virt::proxyTo(&engine, std::move(connf), 0); }); },
 						[&](const std::string& u) -> result<virt::SServer, std::string> { return ups[u]; }
