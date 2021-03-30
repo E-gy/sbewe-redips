@@ -14,6 +14,11 @@
 
 namespace redips::config {
 
+struct Timeout {
+	unsigned seconds;
+	inline operator unsigned() const { return seconds; }
+};
+
 struct TLS {
 	/// TLS certificate
 	std::string cert;
@@ -39,6 +44,8 @@ struct Proxy {
 	HeadMod fwdMod;
 	/// Backwarded response modifier
 	HeadMod bwdMod;
+	/// Timeout for proxied transaction
+	std::optional<Timeout> transactionTimeout;
 };
 
 struct VHost {
@@ -68,9 +75,23 @@ struct Upstream {
 	std::vector<Uphost> hosts;
 };
 
+struct ThroughputUnlimiter {
+	/// bytes
+	unsigned b;
+	/// time (seconds, fractional)
+	double t;
+};
+
+struct Timings {
+	std::optional<Timeout> keepAlive;
+	std::optional<Timeout> transaction;
+	std::optional<ThroughputUnlimiter> throughput;
+};
+
 struct Config {
 	std::vector<VHost> vhosts;
 	std::unordered_map<std::string, Upstream> upstreams;
+	Timings timings;
 };
 
 result<Config, std::string> parse(std::istream&);

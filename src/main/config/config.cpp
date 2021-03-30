@@ -43,6 +43,14 @@ void to_json(json& j, const T& t){}
 void from_json(const json& j, T& t){}
 */
 
+void to_json(json& j, const Timeout& d){
+	j = d.seconds;
+}
+void from_json(const json& j, Timeout& d){
+	j.get_to(d.seconds);
+	if(d.seconds == 0) throw json::type_error::create(301, "A timeout can't be 0");
+}
+
 void to_json(json& j, const TLS& tls){
 	j["ssl_cert"] = tls.cert;
 	j["ssl_key"] = tls.key;
@@ -100,6 +108,7 @@ void to_json(json& j, const Proxy& p){
 	}, p.upstream);
 	to_json(j, "proxy_", p.fwdMod);
 	to_json(j, "", p.bwdMod);
+	if(p.transactionTimeout) j["timeout"] = *p.transactionTimeout;
 }
 void from_json(const json& j, Proxy& p){
 	if(j.contains("upstream"))
@@ -108,6 +117,7 @@ void from_json(const json& j, Proxy& p){
 	else p.upstream = j.get<IPp>();
 	from_json(j, "proxy_", p.fwdMod);
 	from_json(j, "", p.bwdMod);
+	if(j.contains("timeout")) p.transactionTimeout = j.at("timeout").get<Timeout>();
 }
 
 void to_json(json& j, const VHost& vh){
@@ -179,6 +189,32 @@ void from_json(const json& j, Upstream& u){
 	if(j.contains("retries")) u.retries = j.at("retries").get<unsigned>();
 	if(u.hosts.size() == 0) throw json::type_error::create(301, "Upstream must have at least one uphost");
 	if(u.lbm == LoadBalancingMethod::FailOver || u.lbm == LoadBalancingMethod::FailRobin) if(std::count_if(u.hosts.begin(), u.hosts.end(), [](auto uh){ return !uh.healthCheckUrl.has_value(); }) > 0) throw json::type_error::create(301, "Select load balancing method requires all hosts to specify health check URL");
+}
+
+void to_json(json& j, const ThroughputUnlimiter& t){
+	j["throughput_val"] = t.b;
+	j["throughput_time"] = t.t;
+}
+void from_json(const json& j, ThroughputUnlimiter& t){
+	j.at("throughput_val").get_to(t.b);
+	j.at("throughput_time").get_to(t.t);
+	if(t.t < 1E-2) throw json::type_error::create(301, "Throughput interval too small");
+	if(t.b == 0) throw json::type_error::create(301, "Throughput rate 0 is useless");
+}
+
+void to_json(json& j, const Timings& t){
+	if(t.keepAlive) j["keep_alive"] = *t.keepAlive;
+	if(t.transaction) j["transaction"] = *t.transaction;
+	if(t.throughput) to_json(j, *t.throughput);
+}
+void from_json(const json& j, Timings& t){
+	if(j.contains("keep_alive")) t.keepAlive = j.at("keep_alive").get<Timeout>();
+	if(j.contains("transaction")) t.keepAlive = j.at("transaction").get<Timeout>();
+	if(j.contains("throughput_val") || j.contains("throughput_time")){
+		ThroughputUnlimiter ut;
+		from_json(j, ut);
+		t.throughput = ut;
+	}
 }
 
 void to_json(json& j, const Config& c){
