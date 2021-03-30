@@ -211,7 +211,7 @@ void to_json(json& j, const Timings& t){
 }
 void from_json(const json& j, Timings& t){
 	if(j.contains("keep_alive")) t.keepAlive = j.at("keep_alive").get<Timeout>();
-	if(j.contains("transaction")) t.keepAlive = j.at("transaction").get<Timeout>();
+	if(j.contains("transaction")) t.transaction = j.at("transaction").get<Timeout>();
 	if(j.contains("throughput_val") || j.contains("throughput_time")){
 		ThroughputUnlimiter ut;
 		from_json(j, ut);
