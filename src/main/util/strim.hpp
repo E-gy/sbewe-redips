@@ -26,3 +26,6 @@ static inline void trim(std::string &s) {
     ltrim(s);
     rtrim(s);
 }
+
+/// checks if a string begins with a prefix
+static inline bool beginsWith(const std::string& s, const std::string& pref){ return s.rfind(pref, 0) == 0; }
