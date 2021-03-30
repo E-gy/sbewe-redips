@@ -222,6 +222,7 @@ void from_json(const json& j, Timings& t){
 void to_json(json& j, const Config& c){
 	j["vhosts"] = c.vhosts;
 	if(c.upstreams.size() > 0) j["upstreams"] = c.upstreams;
+	if(c.timings.keepAlive || c.timings.throughput || c.timings.transaction) j["timeout"] = c.timings;
 }
 
 void from_json(const json& j, Config& c){
@@ -237,6 +238,7 @@ void from_json(const json& j, Config& c){
 			[&](const IPp&){},
 		}, prox.upstream); },
 	}, vh.mode);
+	if(j.contains("timeout")) j.at("timeout").get_to(c.timings);
 }
 
 result<Config, std::string> parse(std::istream& is){
