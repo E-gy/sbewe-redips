@@ -39,7 +39,7 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 				ostr 
 					<< "</ul>\r\n"
 					<< "</body>\r\n"
-					<< "</html>\r\n";
+					<< "</html>";
 				return respb(http::Response(http::Status::OK, ostr.str()));
 			}
 			relp = relpdf;
