@@ -13,6 +13,13 @@ jobs:
     - name: Install Utilities
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y lcov valgrind
+    - name: Cache CMake deps
+      uses: actions/cache@v2
+      with:
+        path: ${{runner.workspace}}/build/_deps
+        key: ${{runner.os}}-cmake-deps-${{ hashFiles('$GITHUB_WORKSPACE/CMakeLists.txt') }}
+        restore-keys: |
+          ${{runner.os}}-cmake-deps-
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}
