@@ -26,7 +26,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		std::cerr << "Listen error: " << yasync::io::printSysNetError(location, err) << "\n";
 		return false;
 	}, [=](AddressInfo remote, const yasync::io::IOResource& conn){
-		cc->takeCare(ConnectionInfo{conn, ipaddr2str(SDomain, &remote), "http", std::nullopt}, vs);
+		cc->takeCare(ConnectionInfo{conn, ipaddr2str(&remote), "http", std::nullopt}, vs);
 	});
 	if(auto err = lir1.err()) return *err;
 	auto listener = std::move(*lir1.ok());

@@ -63,7 +63,7 @@ template<int SDomain, int SType, int SProto, typename AddressInfo> result<SListe
 		}
 		openSSLIO(conn, ssl) >> ([cc, vs, ssl, remote](auto conn){
 			SSL_set_accept_state(ssl);
-			cc->takeCare(ConnectionInfo{conn, ipaddr2str(SDomain, &remote), "https", std::nullopt}, vs);
+			cc->takeCare(ConnectionInfo{conn, ipaddr2str(&remote), "https", std::nullopt}, vs);
 		}|[](auto err){ std::cerr << "Connection convert to SSL error " << err << "\n"; });
 	});
 	if(auto err = lir1.err()) return *err;

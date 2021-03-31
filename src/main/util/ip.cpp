@@ -18,8 +18,8 @@ bool isValidIPv6(const std::string& str){
 
 bool isValidIP(const std::string& str){ return isValidIPv6(str) || isValidIPv4(str); }
 
-std::string ipaddr2str(int af, const void* addr){
+std::string ipaddr2str(const void* addr){
 	char s[INET_ADDRSTRLEN+INET6_ADDRSTRLEN] = {};
-	inet_ntop(af, addr, s, sizeof(s)/sizeof(char));
+	inet_ntop(reinterpret_cast<const ::sockaddr*>(addr)->sa_family, addr, s, sizeof(s)/sizeof(char));
 	return s;
 }

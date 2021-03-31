@@ -19,7 +19,7 @@ struct IPp {
 	inline bool operator==(const IPp& other) const noexcept { return ip == other.ip && port == other.port; }
 };
 
-std::string ipaddr2str(int af, const void* addr);
+std::string ipaddr2str(const void* addr);
 
 namespace std {
 	template<> struct hash<IPp> {
