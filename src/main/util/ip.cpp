@@ -19,7 +19,15 @@ bool isValidIPv6(const std::string& str){
 bool isValidIP(const std::string& str){ return isValidIPv6(str) || isValidIPv4(str); }
 
 std::string ipaddr2str(const void* addr){
-	char s[INET_ADDRSTRLEN+INET6_ADDRSTRLEN] = {};
-	inet_ntop(reinterpret_cast<const ::sockaddr*>(addr)->sa_family, addr, s, sizeof(s)/sizeof(char));
+	char s[INET_ADDRSTRLEN+INET6_ADDRSTRLEN] = "<unka>";
+	switch(reinterpret_cast<const ::sockaddr*>(addr)->sa_family){
+		case AF_INET:
+			inet_ntop(AF_INET, reinterpret_cast<const void*>(&reinterpret_cast<const ::sockaddr_in*>(addr)->sin_addr), s, sizeof(s)/sizeof(char));
+			break;
+		case AF_INET6:
+			inet_ntop(AF_INET6, reinterpret_cast<const void*>(&reinterpret_cast<const ::sockaddr_in6*>(addr)->sin6_addr), s, sizeof(s)/sizeof(char));
+			break;
+		default: break;
+	}
 	return s;
 }
