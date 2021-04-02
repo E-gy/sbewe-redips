@@ -9,6 +9,45 @@ using namespace yasync::io;
 using namespace magikop;
 using namespace http;
 
+static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
+	if(!rr->hasHeader(Header::Forwarded)){ //transition
+		auto konvert = [](const std::string& h, const std::string& pref){
+			std::ostringstream fwd;
+			for(std::size_t p = 0; p < h.length();){
+				auto np = h.find(',', p);
+				auto seg = h.substr(p, np-p);
+				trim(seg);
+				if(p > 0) fwd << ",";
+				fwd << pref << "=";
+				if(isValidIPv6(seg)) fwd << "\"[" << seg << "]\"";
+				else fwd << seg;
+				if(np == h.npos) break;
+				else p = np+1;
+			}
+			return fwd.str();
+		};
+		if(auto xfh = rr->getHeader("X-Forwarded-For")){
+			rr->removeHeader("X-Forwarded-For");
+			rr->setHeader(Header::Forwarded, konvert(*xfh, "for"));
+		}
+		else if(auto xfh = rr->getHeader("X-Forwarded-Host")){
+			rr->removeHeader("X-Forwarded-Host");
+			rr->setHeader(Header::Forwarded, konvert(*xfh, "host"));
+		}
+		else if(auto xfh = rr->getHeader("X-Forwarded-By")){
+			rr->removeHeader("X-Forwarded-By");
+			rr->setHeader(Header::Forwarded, konvert(*xfh, "by"));
+		}
+		else if(auto xfh = rr->getHeader("X-Forwarded-Proto")){
+			rr->removeHeader("X-Forwarded-Proto");
+			rr->setHeader(Header::Forwarded, konvert(*xfh, "proto"));
+		}
+	}
+	//append self
+	auto fwd = rr->getHeader(http::Header::Forwarded);
+	rr->setHeader(http::Header::Forwarded, fwd.has_value() && *fwd != "" ? *fwd + "," + inf.to_string() : inf.to_string());
+}
+
 class ProxyingServer : public IServer {
 	yasync::Yengine* const engine;
 	ProxyConnectionFactory cf;
@@ -50,8 +89,7 @@ class ProxyingServer : public IServer {
 			});
 		}
 		void take(const ConnectionInfo& inf, SharedRRaw rr, RespBack resp) override {
-			auto fwd = rr->getHeader(http::Header::Forwarded);
-			rr->setHeader(http::Header::Forwarded, fwd.has_value() && *fwd != "" ? *fwd + "," + inf.to_string() : inf.to_string());
+			processFWD(inf, rr);
 			return sprr(rr, resp, 0);
 		}
 };
@@ -100,8 +138,7 @@ class PooledProxyingServer : public IServer {
 			});
 		}
 		void take(const ConnectionInfo& inf, SharedRRaw rr, RespBack resp) override {
-			auto fwd = rr->getHeader(http::Header::Forwarded);
-			rr->setHeader(http::Header::Forwarded, fwd.has_value() && *fwd != "" ? *fwd + "," + inf.to_string() : inf.to_string());
+			processFWD(inf, rr);
 			return sprr(rr, resp, 0);
 		}
 };
