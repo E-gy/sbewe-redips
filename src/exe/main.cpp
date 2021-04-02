@@ -151,7 +151,7 @@ int main(int argc, char* args[]){
 				auto fiz = &terms[vhost.address];
 				fiz->addService(vhost.tok(), stack);
 				if(vhost.isDefault) fiz->setDefaultService(stack);
-				if(auto ssl = vhost.tls) yasync::io::ssl::createSSLContext(ssl->cert, ssl->key) >> ([&](auto sctx){ sslctx[vhost.address].addHost(sctx, vhost.tok()); }|[&](auto err){ std::cerr << "Failed to initalize VHost ssl context: " << err << "\n"; });
+				if(auto ssl = vhost.tls) yasync::io::ssl::createSSLContext(ssl->cert, ssl->key) >> ([&](auto sctx){ sslctx[vhost.address].addHost(sctx, vhost.tok()); }|[&](auto err){ std::cerr << "Failed to initalize VHost ssl context: " << err << "\n"; okay = false; });
 			}
 			for(auto ent : terms){
 				if(!okay) break;
