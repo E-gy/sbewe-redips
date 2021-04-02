@@ -89,11 +89,12 @@ RRReadResult RR::readHeaders(const std::string& s){
 		setHeader(hname, hvs < nhe ? s.substr(hvs, hve+1-hvs) : ""); //https://bugzilla.mozilla.org/show_bug.cgi?id=474845
 		nhs = nhe+2;
 	}
-	auto clh = getHeader(Header::ContentLength);
-	if(clh.has_value()) try {
+	if(auto clh = getHeader(Header::ContentLength)) try {
+		if(clh->length() == 0) return RRReadError(Status::BAD_REQUEST, "Content length specified but empty");
+		if((*clh)[0] == '-') return RRReadError(Status::BAD_REQUEST, "Content length specified negative");
 		std::stoull(*clh);
 	} catch(std::invalid_argument&){
-		return RRReadError(Status::BAD_REQUEST, "Content length specified but invalid");
+		return RRReadError(Status::BAD_REQUEST, "Content length specified NaN");
 	}
 	else setHeader(Header::ContentLength, 0);
 	return RRReadResult::Ok();
