@@ -25,6 +25,7 @@ class TimIsOut : public IServer {
 				if(hwar->state() != yasync::FutureState::Completed){
 					ticktack->stop(t);
 					hwar->set(yasync::FutureState::Completed, std::move(resp));
+					engine->notify(hwar);
 				}
 			});
 		}
