@@ -72,8 +72,8 @@ static inline void removeDotSegments(std::string& s){
 static inline void decodeUnreservedPercent(std::string& s){
 	for(std::size_t p = s.find('%'); p < s.length(); p = s.find('%', p+1)) if(p+2 < s.length()){
 		std::size_t nom = 0;
-		char c = std::stoul(s.substr(p+1, 2), &nom, 16);
-		if(nom == 2 && (::isalnum(c) || (c == '-' || c == '_' || c == '.' || c == '~'))) s.replace(p, 3, {c});
+		unsigned char c = std::stoul(s.substr(p+1, 2), &nom, 16);
+		if(nom == 2 && (::isalnum(c) || (c == '-' || c == '_' || c == '.' || c == '~') || c > 0x7F)) s.replace(p, 3, {char(c)});
 	}
 }
 

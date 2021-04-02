@@ -46,6 +46,7 @@ SCENARIO("Decode percent characters", "[uri][util]"){
 			Case { "h%65llo%2e", "hello." },
 			Case { "%21h%65llo%2e", "%21hello." },
 			Case { "%21h%65llo%2e%20%2F", "%21hello.%20%2F" },
+			Case { "%E5%86%86%C2%A3", "円£" },
 			Case { "", "" }
 		);
 		WHEN("decoding unreserved characters"){
