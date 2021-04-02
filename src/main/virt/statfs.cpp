@@ -24,21 +24,21 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 			if(gmd && getFileType(relpdf) != FileType::File){ //doesn't exist. but we can generate one!
 				std::ostringstream ostr;
 				ostr
-					<< "<!DOCTYPE html>\r\n"
-					<< "<html>\r\n"
-					<< "<head>\r\n"
-					<< "<meta charset=utf-8>\r\n";
-				if(path.length() > 0) ostr << "<title>Index of " << path << "</title>\r\n";
-				else ostr << "<title>Index of " << FPATHSEP << "</title>\r\n";
+					<< "<!DOCTYPE html>\n"
+					<< "<html>\n"
+					<< "<head>\n"
+					<< "<meta charset=utf-8>\n";
+				if(path.length() > 0) ostr << "<title>Index of " << path << "</title>\n";
+				else ostr << "<title>Index of " << FPATHSEP << "</title>\n";
 				ostr
-					<< "</head>\r\n"
-					<< "<body>\r\n"
-					<< "<ul>\r\n";
-				ostr << "<a href=\"" << path << FPATHSEP << ".." << "\">" << ".." << "</a>\r\n"; //
-				for(const auto& ent : std::filesystem::directory_iterator(relp.length() == 0 ? "/" : relp)) ostr << "<a href=\"" << path << FPATHSEP << ent.path().filename().generic_string() << "\">" << ent.path().filename().generic_string() << "</a>\r\n";
+					<< "</head>\n"
+					<< "<body>\n"
+					<< "<ul>\n";
+				ostr << "<a href=\"" << path << FPATHSEP << ".." << "\">" << ".." << "</a>\n"; //
+				for(const auto& ent : std::filesystem::directory_iterator(relp.length() == 0 ? "/" : relp)) ostr << "<a href=\"" << path << FPATHSEP << ent.path().filename().generic_string() << "\">" << ent.path().filename().generic_string() << "</a>\n";
 				ostr 
-					<< "</ul>\r\n"
-					<< "</body>\r\n"
+					<< "</ul>\n"
+					<< "</body>\n"
 					<< "</html>";
 				return respb(http::Response(http::Status::OK, ostr.str()));
 			}
