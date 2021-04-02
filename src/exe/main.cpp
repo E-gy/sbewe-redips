@@ -12,6 +12,7 @@
 #include <fiz/estconn.hpp>
 #include <virt/prox.hpp>
 #include <virt/loadbalhelth.hpp>
+#include <virt/timout.hpp>
 
 #include <iostream>
 #include <unordered_map>
@@ -147,6 +148,7 @@ int main(int argc, char* args[]){
 					break;
 				}
 				auto stack = std::move(*stackr.ok());
+				if(auto prox = std::get_if<config::Proxy>(&vhost.mode)) if(auto timout = prox->transactionTimeout) stack = virt::timeItOut(&engine, &ticktack, std::chrono::seconds(timout->seconds), stack);
 				if(auto auth = vhost.auth) stack = virt::putBehindBasicAuth(auth->realm, auth->credentials, std::move(stack), vhost.mode.index() == 1);
 				auto fiz = &terms[vhost.address];
 				fiz->addService(vhost.tok(), stack);
