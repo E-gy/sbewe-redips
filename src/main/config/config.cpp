@@ -33,6 +33,11 @@ std::string VHost::identk(){
 	k << '[' << (this->address.ip == "127.0.0.1" ? "0.0.0.0" : this->address.ip) << "]:" << this->address.port << "#" << this->serverName;
 	return k.str();
 }
+std::string VHost::identl(){
+	std::ostringstream k;
+	k << '[' << (this->address.ip == "127.0.0.1" ? "0.0.0.0" : this->address.ip) << "]:" << this->address.port;
+	return k.str();
+}
 
 HostK VHost::tok(){
 	return HostK{ serverName, address.ip, address.port };
@@ -230,6 +235,14 @@ void from_json(const json& j, Config& c){
 	if(std::count_if(c.vhosts.begin(), c.vhosts.end(), [](auto vh){ return vh.isDefault; }) > 1) throw json::type_error::create(301, "Multiple VHosts marked as default");
 	std::unordered_set<std::string> iks;
 	for(auto vh : c.vhosts) if(!iks.insert(vh.identk()).second) throw json::type_error::create(301, "Some VHosts are not differentiable");
+	std::unordered_map<std::string, std::string> iproto;
+	for(auto vh : c.vhosts){
+		const auto proto = vh.tls.has_value() ? "https" : "http";
+		const auto il = vh.identl();
+		if(iproto.count(il) > 0){
+			if(iproto[il] != proto) throw json::type_error::create(301, "Can't allow different protocols on same IP&Port");
+		} else iproto[il] = proto;
+	}
 	if(j.contains("upstreams")) j.at("upstreams").get_to(c.upstreams);
 	for(auto vh : c.vhosts) std::visit(overloaded {
 		[&](const FileServer&){ /*TODO check root exists..?*/ },

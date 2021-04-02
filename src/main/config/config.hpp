@@ -60,6 +60,7 @@ struct VHost {
 	bool isDefault = false;
 	VHost() = default;
 	std::string identk();
+	std::string identl();
 	HostK tok();
 };
 
