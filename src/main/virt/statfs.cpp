@@ -31,7 +31,7 @@ static std::string lifi(const std::string& relp, const std::string& path){
 		<< "</head>\n"
 		<< "<body>\n"
 		<< "<ul>\n";
-	ostr << "<a href=\"" << path << FPATHSEP << ".." << "\">" << ".." << "</a>\n"; //
+	ostr << "<li><a href=\"" << path << FPATHSEP << ".." << "\">" << ".." << "</a></li>\n"; //
 	for(const auto& ent : std::filesystem::directory_iterator(relp.length() == 0 ? "/" : relp)) ostr << "<a href=\"" << path << FPATHSEP << ent.path().filename().generic_string() << "\">" << ent.path().filename().generic_string() << "</a>\n";
 	ostr 
 		<< "</ul>\n"
