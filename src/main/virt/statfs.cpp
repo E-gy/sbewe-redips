@@ -50,8 +50,14 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 		relp += path;
 		if(relp.length() == 0 || getFileType(relp) == FileType::Directory){ //oh so it is a directory. well then let's get default file in it!
 			auto relpdf = relp + FPATHSEP + deff;
-			if(gmd && getFileType(relpdf) != FileType::File){ //doesn't exist. but we can generate one!
-				return respb(http::Response(http::Status::OK, lifi(relp, path)));
+			if(gmd) switch(getFileType(relpdf)){
+				case FileType::Directory:
+					if(path.length() == 0) return respb(http::Response(http::Status::OK, lifi(relpdf, path))); //we're in root, and default file is a directory that exists :| let's list its contents...
+					else [[fallthrough]];
+				case FileType::NE: return respb(http::Response(http::Status::OK, lifi(relp, path))); //doesn't exist. but we can generate one!
+				case FileType::File:
+				default:
+					break;
 			}
 			relp = relpdf;
 		}
