@@ -56,14 +56,16 @@ yasync::Future<result<SharedRequest, RRReadError>> Request::read(yasync::io::IOR
 	SharedRequest rr(new Request());
 	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedRequest, RRReadError> {
 		if(auto err = rres.err()) return *err;
-		else return rr;
+		rr->diagRTotalBytes = *rres.ok();
+		return rr;
 	};
 }
 yasync::Future<result<SharedResponse, RRReadError>> Response::read(yasync::io::IOResource res){
 	SharedResponse rr(new Response());
 	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedResponse, RRReadError>{
 		if(auto err = rres.err()) return *err;
-		else return rr;
+		rr->diagRTotalBytes = *rres.ok();
+		return rr;
 	};
 }
 
@@ -71,7 +73,8 @@ yasync::Future<result<SharedRRaw, RRReadError>> RRaw::read(yasync::io::IOResourc
 	SharedRRaw rr(new RRaw());
 	return RR::read(rr, res) >> [rr](auto rres) -> result<SharedRRaw, RRReadError>{
 		if(auto err = rres.err()) return *err;
-		else return rr;
+		rr->diagRTotalBytes = *rres.ok();
+		return rr;
 	};
 }
 

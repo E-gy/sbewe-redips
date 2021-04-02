@@ -31,6 +31,7 @@ struct RR {
 	Version version = http::Version::HTTP11;
 	std::unordered_map<std::string, std::string> headers;
 	std::optional<std::vector<char>> body; //TODO byte it up
+	std::size_t diagRTotalBytes = 0;
 	RR() = default;
 	bool hasHeader(const std::string& h);
 	bool hasHeader(Header h);
