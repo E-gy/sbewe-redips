@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <util/strim.hpp>
 
 namespace redips::http {
 
@@ -114,7 +115,15 @@ RRReadResult Request::readTitle(const std::string& l){
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
 	if(auto m = methodFromStr(ms)) method = *m;
 	else return RRReadError(Status::METHOD_NOT_ALLOWED, "Invalid HTTP method");
-	if(ps.length() == 0 || ps[0] != '/') return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash");
+	if(ps.length() == 0) path = "/";
+	else if(ps[0] == '/') path = ps;
+	else if(beginsWith(ps, "http")){
+		auto slashslash = ps.find("://");
+		if(slashslash == ps.npos) return RRReadError(Status::BAD_REQUEST, "HTTP full URI without protocol delimiter / request path must start with slash");
+		auto fslash = ps.find('/', slashslash+3);
+		if(fslash == ps.npos) path = "/";
+		else path = ps.substr(fslash);
+	} else return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash");
 	path = ps;
 	return RRReadResult::Ok();
 }
