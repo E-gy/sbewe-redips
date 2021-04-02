@@ -31,19 +31,22 @@ yasync::Future<RRReadResult> RR::read(SharedRR rr, yasync::io::IOResource res){
 		if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
 		auto pr = rr->readTitle(*rres.ok());
 		if(pr.isErr()) return yasync::completed(std::move(pr));
+		const auto bytesT = *pr.ok();
 		return res->read<std::string>(std::string("\r\n\r\n")) >> [=](auto rres){
 			if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
 			auto pr = rr->readHeaders(*rres.ok());
 			if(pr.isErr()) return yasync::completed(std::move(pr));
+			const auto bytesH = *pr.ok();
 			auto bls = rr->getHeader(Header::ContentLength);
 			size_t ble = 0;
 			std::size_t bl = bls.has_value() ? std::stoull(*bls, &ble) : 0;
 			if(bls.has_value() && ble == 0) return yasync::completed(RRReadResult::Err(RRReadError(Status::BAD_REQUEST, "Invalid Content-Length")));
-			if(bl == 0) return yasync::completed(RRReadResult::Ok());
+			if(bl == 0) return yasync::completed(RRReadResult::Ok(bytesT+bytesH));
 			return res->read<std::vector<char>>(bl) >> [=](auto rres){
 				if(auto err = rres.err()) return yasync::completed(RRReadResult::Err(RRReadError(*err)));
+				const auto bytesB = rres.ok()->size();
 				rr->body = std::move(*rres.ok());
-				return yasync::completed(RRReadResult::Ok());
+				return yasync::completed(RRReadResult::Ok(bytesT+bytesH+bytesB));
 			};
 		};
 	};
@@ -97,7 +100,7 @@ RRReadResult RR::readHeaders(const std::string& s){
 		return RRReadError(Status::BAD_REQUEST, "Content length specified NaN");
 	}
 	else setHeader(Header::ContentLength, 0);
-	return RRReadResult::Ok();
+	return RRReadResult::Ok(s.length());
 }
 
 void RR::writeHeaders(std::ostream& w) const {
@@ -126,7 +129,7 @@ RRReadResult Request::readTitle(const std::string& l){
 		else path = ps.substr(fslash);
 	} else return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash");
 	path = ps;
-	return RRReadResult::Ok();
+	return RRReadResult::Ok(l.length());
 }
 
 RRReadResult Response::readTitle(const std::string& l){
@@ -146,7 +149,7 @@ RRReadResult Response::readTitle(const std::string& l){
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
 	if(auto sc = statusFromCode(si)) status = *sc;
 	else return RRReadError(Status::BAD_REQUEST, "Unsupported status code");
-	return RRReadResult::Ok();
+	return RRReadResult::Ok(l.length());
 }
 
 void RR::write(const yasync::io::IORWriter& w) const {
@@ -172,7 +175,7 @@ RRaw::RRaw(const RR& r) : RR(r) {
 }
 RRReadResult RRaw::readTitle(const std::string& t){
 	title = t;
-	return RRReadResult::Ok();
+	return RRReadResult::Ok(t.length());
 }
 void RRaw::writeTitle(std::ostream& os) const {
 	os << title;

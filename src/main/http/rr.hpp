@@ -25,7 +25,7 @@ struct RRReadError {
 	RRReadError(std::string d): asstat(std::nullopt), desc(d) {}
 	RRReadError(Status s, std::string d): asstat(s), desc(d) {}
 };
-using RRReadResult = result<void, RRReadError>;
+using RRReadResult = result<std::size_t, RRReadError>;
 
 struct RR {
 	Version version = http::Version::HTTP11;
