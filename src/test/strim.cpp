@@ -51,7 +51,7 @@ SCENARIO("Decode percent characters", "[uri][util]"){
 		);
 		WHEN("decoding unreserved characters"){
 			auto seg = c.in;
-			decodeUnreservedPercent(seg);
+			decodePercent(seg);
 			REQUIRE(seg == c.expected);
 		}
 	}

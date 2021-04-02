@@ -69,16 +69,16 @@ static inline void removeDotSegments(std::string& s){
 	if(s.length() == 0) s = "/"; //always keep a leading slash
 }
 
-static inline void decodeUnreservedPercent(std::string& s){
+static inline void decodePercent(std::string& s, bool all = false){
 	for(std::size_t p = s.find('%'); p < s.length(); p = s.find('%', p+1)) if(p+2 < s.length()){
 		std::size_t nom = 0;
 		unsigned char c = std::stoul(s.substr(p+1, 2), &nom, 16);
-		if(nom == 2 && (::isalnum(c) || (c == '-' || c == '_' || c == '.' || c == '~') || c > 0x7F)) s.replace(p, 3, {char(c)});
+		if(nom == 2 && (all || ::isalnum(c) || (c == '-' || c == '_' || c == '.' || c == '~') || c > 0x7F)) s.replace(p, 3, {char(c)});
 	}
 }
 
 static inline void normalizeURIPath(std::string& s){
 	replaceAll(s, "//", "/");
 	removeDotSegments(s);
-	decodeUnreservedPercent(s);
+	decodePercent(s);
 }
