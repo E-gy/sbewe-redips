@@ -18,6 +18,28 @@ static void stripdotdot(std::string& s){
 	for(auto d = s.find("/."); d != s.npos; d = s.find("/.", d+1)) if(d+2 >= s.length() || s[d+2] == '/') s.erase(d, 2); //remove all /./ and /.$
 }
 
+static std::string lifi(const std::string& relp, const std::string& path){
+	std::ostringstream ostr;
+	ostr
+		<< "<!DOCTYPE html>\n"
+		<< "<html>\n"
+		<< "<head>\n"
+		<< "<meta charset=utf-8>\n";
+	if(path.length() > 0) ostr << "<title>Index of " << path << "</title>\n";
+	else ostr << "<title>Index of " << FPATHSEP << "</title>\n";
+	ostr
+		<< "</head>\n"
+		<< "<body>\n"
+		<< "<ul>\n";
+	ostr << "<a href=\"" << path << FPATHSEP << ".." << "\">" << ".." << "</a>\n"; //
+	for(const auto& ent : std::filesystem::directory_iterator(relp.length() == 0 ? "/" : relp)) ostr << "<a href=\"" << path << FPATHSEP << ent.path().filename().generic_string() << "\">" << ent.path().filename().generic_string() << "</a>\n";
+	ostr 
+		<< "</ul>\n"
+		<< "</body>\n"
+		<< "</html>";
+	return ostr.str();
+}
+
 void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw, RespBack respb){
 	rraw->as<http::Request>() >> ([&](http::Request req){
 		if(req.method != http::Method::HEAD && req.method != http::Method::GET && req.method != http::Method::POST) return respb(http::Response(http::Status::METHOD_NOT_ALLOWED));
@@ -29,25 +51,7 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 		if(relp.length() == 0 || getFileType(relp) == FileType::Directory){ //oh so it is a directory. well then let's get default file in it!
 			auto relpdf = relp + FPATHSEP + deff;
 			if(gmd && getFileType(relpdf) != FileType::File){ //doesn't exist. but we can generate one!
-				std::ostringstream ostr;
-				ostr
-					<< "<!DOCTYPE html>\n"
-					<< "<html>\n"
-					<< "<head>\n"
-					<< "<meta charset=utf-8>\n";
-				if(path.length() > 0) ostr << "<title>Index of " << path << "</title>\n";
-				else ostr << "<title>Index of " << FPATHSEP << "</title>\n";
-				ostr
-					<< "</head>\n"
-					<< "<body>\n"
-					<< "<ul>\n";
-				ostr << "<a href=\"" << path << FPATHSEP << ".." << "\">" << ".." << "</a>\n"; //
-				for(const auto& ent : std::filesystem::directory_iterator(relp.length() == 0 ? "/" : relp)) ostr << "<a href=\"" << path << FPATHSEP << ent.path().filename().generic_string() << "\">" << ent.path().filename().generic_string() << "</a>\n";
-				ostr 
-					<< "</ul>\n"
-					<< "</body>\n"
-					<< "</html>";
-				return respb(http::Response(http::Status::OK, ostr.str()));
+				return respb(http::Response(http::Status::OK, lifi(relp, path)));
 			}
 			relp = relpdf;
 		}
