@@ -77,7 +77,7 @@ void from_json(const json& j, BasicAuth& auth){
 	for(auto c : auth.credentials){
 		auto sep = c.find(':');
 		if(sep == std::string::npos) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}");
-		if(sep == 0) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}` with non-empty username");
+		if(sep == 0 || sep == c.length()-1) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}` (both segments non-empty)");
 	}
 }
 
