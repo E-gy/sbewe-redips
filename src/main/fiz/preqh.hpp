@@ -10,13 +10,14 @@ class ConnectionCare {
 	yasync::TickTack* ticktack;
 	std::optional<yasync::TickTack::Duration> toIdle;
 	std::optional<yasync::TickTack::Duration> toTrans;
+	std::optional<double> minByterate;
 	bool sdown = false;
 	std::mutex idlok;
 	std::unordered_set<yasync::io::IOResource> idle;
 	void setIdle(yasync::io::IOResource);
 	void unsetIdle(yasync::io::IOResource);
 	public:
-		ConnectionCare(yasync::TickTack*, std::optional<yasync::TickTack::Duration> toIdle, std::optional<yasync::TickTack::Duration> toTrans);
+		ConnectionCare(yasync::TickTack*, std::optional<yasync::TickTack::Duration> toIdle, std::optional<yasync::TickTack::Duration> toTrans, std::optional<double> minByterate);
 		/**
 		 * Initiates care shut down.
 		 * All idle `keep-alive` connections are closed.

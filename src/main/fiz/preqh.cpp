@@ -12,7 +12,7 @@ namespace redips::fiz {
 using namespace magikop;
 using namespace http;
 
-ConnectionCare::ConnectionCare(yasync::TickTack* t, std::optional<yasync::TickTack::Duration> idle, std::optional<yasync::TickTack::Duration> trans) : ticktack(t), toIdle(idle), toTrans(trans){}
+ConnectionCare::ConnectionCare(yasync::TickTack* t, std::optional<yasync::TickTack::Duration> idle, std::optional<yasync::TickTack::Duration> trans, std::optional<double> b) : ticktack(t), toIdle(idle), toTrans(trans), minByterate(b){}
 
 inline bool keepAlive(RR& rr){
 	if(auto conn = rr.getHeader(Header::Connection)){
@@ -64,11 +64,24 @@ void ConnectionCare::takeCare(ConnectionInfo inf, virt::SServer vs){
 			std::cerr << "Received hung up conn.\n";
 			return;
 		}
+		const auto startTms = std::chrono::steady_clock::now();
 		auto transT = toTrans ? ticktack->sleep(*toTrans, [=](auto, bool cancel){ if(!cancel) conn->cancel(); }) : ticktack->UnId;
 		conn->engine <<= RRaw::read(conn) >> [=](auto rr){
 			ticktack->stop(transT);
 			return rr;
 		} >> ([=](SharedRRaw reqwest){
+			if(minByterate) if(reqwest->diagRTotalBytes/double(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTms).count()) < *minByterate){
+				Response resp(http::Status::REQUEST_TIMEOUT);
+				resp.setHeader(Header::Date, timestamp());
+				resp.setHeader(Header::Connection, "closed");
+				resp.setHeader(Header::TimeoutReason, "Throughput");
+				auto wr = conn->writer();
+				resp.write(wr);
+				conn->engine <<= wr->eod() >> ([=](){}|[](auto err){
+					std::cerr << "Failed to inform client of transmission low throughput: " << err << "\n";
+				});
+				return;
+			}
 			const bool rkal = keepAlive(*reqwest);
 			vs->take(ConnectionInfo{inf.connection, inf.address, inf.protocol, reqwest->getHeader(Header::Host)}, reqwest, [=](auto resp){
 				auto wr = conn->writer();
