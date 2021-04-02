@@ -1,6 +1,7 @@
 #include "statfs.hpp"
 
 #include <util/filetype.hpp>
+#include <util/strim.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -12,12 +13,18 @@ using namespace magikop;
 
 StaticFileServer::StaticFileServer(yasync::io::IOYengine* e, std::string r, std::string d, bool g) : engine(e), root(r.length() > 0 && r[r.length()-1] == FPATHSEP ? r.substr(0, r.length()-1) : r), deff(d.length() > 0 && d[0] == FPATHSEP ? d.substr(1) : d), gmd(g) {}
 
+static void stripdotdot(std::string& s){
+	for(auto d = s.find("/.."); d != s.npos; d = s.find("/..", d+1)) if(d+3 >= s.length() || s[d+3] == '/') s.erase(d, 3); //remove all /../ and /..$
+	for(auto d = s.find("/."); d != s.npos; d = s.find("/.", d+1)) if(d+2 >= s.length() || s[d+2] == '/') s.erase(d, 2); //remove all /./ and /.$
+}
+
 void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw, RespBack respb){
 	rraw->as<http::Request>() >> ([&](http::Request req){
 		if(req.method != http::Method::HEAD && req.method != http::Method::GET && req.method != http::Method::POST) return respb(http::Response(http::Status::METHOD_NOT_ALLOWED));
 		auto relp = root;
 		auto path = req.path.substr(0, std::min(req.path.find('?'), req.path.find('#')));
 		if(path.length() > 0 && path[path.length()-1] == FPATHSEP) path = path.substr(0, path.length()-1); //If combined path ends with /, remove it. what if it's a file?
+		stripdotdot(path);
 		relp += path;
 		if(relp.length() == 0 || getFileType(relp) == FileType::Directory){ //oh so it is a directory. well then let's get default file in it!
 			auto relpdf = relp + FPATHSEP + deff;
