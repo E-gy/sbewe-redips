@@ -14,7 +14,7 @@ struct Case {
 	std::string expected;
 };
 
-SCENARIO("Remove Dot Segments", "[http][util]"){
+SCENARIO("Remove Dot Segments", "[uri][util]"){
 	GIVEN("unresolved relative path"){
 		auto c = GENERATE(
 			Case { "/a/b/c/./../../g", "/a/g" },
@@ -32,6 +32,25 @@ SCENARIO("Remove Dot Segments", "[http][util]"){
 		WHEN("removing dot segments"){
 			auto seg = c.in;
 			removeDotSegments(seg);
+			REQUIRE(seg == c.expected);
+		}
+	}
+}
+
+SCENARIO("Decode percent characters", "[uri][util]"){
+	GIVEN("encoded path"){
+		auto c = GENERATE(
+			Case { "hello.", "hello." },
+			Case { "h%65llo.", "hello." },
+			Case { "h%65llo%2E", "hello." },
+			Case { "h%65llo%2e", "hello." },
+			Case { "%21h%65llo%2e", "%21hello." },
+			Case { "%21h%65llo%2e%20%2F", "%21hello.%20%2F" },
+			Case { "", "" }
+		);
+		WHEN("decoding unreserved characters"){
+			auto seg = c.in;
+			decodeUnreservedPercent(seg);
 			REQUIRE(seg == c.expected);
 		}
 	}
