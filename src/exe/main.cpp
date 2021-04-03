@@ -40,6 +40,30 @@ result<config::Config, std::string> parseArgs(int argc, char* args[], bool& dry)
 	return config::parse(cfgf);
 }
 
+template<typename B> auto helthBalConnUpd(const B& bal){
+	return [bal](){
+		return yasync::defer(yasync::lambdagen([bal](auto, bool& done, std::optional<virt::HealThy<yasync::Future<virt::ProxyConnectionFactoryResult>>>& candi) -> yasync::Generesume<virt::ProxyConnectionFactoryResult> {
+			if(done) virt::ProxyConnectionFactoryResult::Err(virt::CONFAERREVERY1ISDED); //nevah!
+			if(candi){
+				auto thy = std::move(*candi);
+				auto thyr = std::move(thy.t.result());
+				if(thyr.isOk()){
+					done = true;
+					return thyr;
+				} else thy.helth->store(fiz::Health::Dead); //the endpoint is dead. report and try again.
+			}
+			if(auto alive = (*bal)()){ //pick (next) endpoint
+				auto f = alive->t();
+				candi = virt::HealThy<yasync::Future<virt::ProxyConnectionFactoryResult>>{f, std::move(alive->helth)};
+				return f;
+			} else { //no helthy endpoints remaining
+				done = true;
+				return virt::ProxyConnectionFactoryResult::Err(virt::CONFAERREVERY1ISDED);
+			}
+		}, std::optional<virt::HealThy<yasync::Future<virt::ProxyConnectionFactoryResult>>>{}));
+	};
+}
+
 int main(int argc, char* args[]){
 	yasync::io::ssl::SSLStateControl _ssl;
 	bool dry = false;
@@ -103,7 +127,7 @@ int main(int argc, char* args[]){
 								break;
 							}
 						}
-						uv = virt::proxyTo(&engine, [bal](){ if(auto alive = (*bal)()) return (*alive)(); else return yasync::completed(virt::ProxyConnectionFactoryResult::Err(virt::CONFAERREVERY1ISDED)); }, u.second.retries.value_or(0));
+						uv = virt::proxyTo(&engine, helthBalConnUpd(bal), u.second.retries.value_or(0));
 						break;
 					}
 					case LoadBalancingMethod::FailRobin:{
@@ -121,7 +145,7 @@ int main(int argc, char* args[]){
 								break;
 							}
 						}
-						uv = virt::proxyTo(&engine, [bal](){ if(auto alive = (*bal)()) return (*alive)(); else return yasync::completed(virt::ProxyConnectionFactoryResult::Err(virt::CONFAERREVERY1ISDED)); }, u.second.retries.value_or(0));
+						uv = virt::proxyTo(&engine, helthBalConnUpd(bal), u.second.retries.value_or(0));
 						break;
 					}
 					default:
