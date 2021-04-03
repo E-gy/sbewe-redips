@@ -5,6 +5,11 @@
 
 namespace redips::virt {
 
+template<typename T> struct HealThy {
+	T t;
+	fiz::HealthMonitor::SAH helth;
+};
+
 template<typename T> class FailOverBalancer {
 	fiz::HealthMonitor* helthmon;
 	std::vector<T> ts;
@@ -19,13 +24,13 @@ template<typename T> class FailOverBalancer {
 			ts.push_back(std::move(t));
 			return result<void, std::string>::Ok();
 		}
-		std::optional<T> operator()(){
+		std::optional<HealThy<T>> operator()(){
 			for(unsigned i = 0; i < helth.size(); i++) switch(*helth[i]){
 				case fiz::Health::Missing:
 					if(lenient) [[fallthrough]];
 					else break;
 				case fiz::Health::Alive:
-					return ts[i];
+					return HealThy<T>{ts[i],helth[i]};
 				case fiz::Health::Dead:
 				default:
 					break;
@@ -51,7 +56,7 @@ template<typename T> class FailRobinBalancer {
 			}
 			return result<void, std::string>::Ok();
 		}
-		std::optional<T> operator()(){
+		std::optional<HealThy<T>> operator()(){
 			for(unsigned k = 0; k < helth.size(); k++){
 				unsigned i = next++%ts.size();
 				switch(*helth[i]){
@@ -59,7 +64,7 @@ template<typename T> class FailRobinBalancer {
 						if(lenient) [[fallthrough]];
 						else break;
 					case fiz::Health::Alive:
-						return ts[i];
+						return HealThy<T>{ts[i],helth[i]};
 					case fiz::Health::Dead:
 					default:
 						break;
