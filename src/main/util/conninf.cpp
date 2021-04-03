@@ -7,7 +7,11 @@ std::ostream& operator<<(std::ostream& os, const ConnectionInfo& conn){
 	os << "for=";
 	if(isValidIPv6(conn.address)) os << "\"[" << conn.address << "]\"";
 	else os << conn.address;
-	if(conn.host) os << ";host=" << *conn.host;
+	if(conn.host){
+		os << ";host=";
+		if(conn.host->find(':') != conn.host->npos) os << "\"" << *conn.host << "\"";
+		else os << *conn.host;
+	}
 	return os << ";proto=" << conn.protocol;
 }
 
