@@ -32,8 +32,11 @@ static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
 			return fwd.str();
 		};
 		if(auto xfh = rr->getHeader("X-Forwarded-For")) rr->setHeader(Header::Forwarded, konvert(*xfh, "for"));
+		else if(auto xfh = rr->getHeader("X-Forwarded-for")) rr->setHeader(Header::Forwarded, konvert(*xfh, "for"));
 		else if(auto xfh = rr->getHeader("X-Forwarded-Host")) rr->setHeader(Header::Forwarded, konvert(*xfh, "host"));
+		else if(auto xfh = rr->getHeader("X-Forwarded-host")) rr->setHeader(Header::Forwarded, konvert(*xfh, "host"));
 		else if(auto xfh = rr->getHeader("X-Forwarded-Proto")) rr->setHeader(Header::Forwarded, konvert(*xfh, "proto"));
+		else if(auto xfh = rr->getHeader("X-Forwarded-proto")) rr->setHeader(Header::Forwarded, konvert(*xfh, "proto"));
 	}
 	//append self
 	auto fwd = rr->getHeader(http::Header::Forwarded);
