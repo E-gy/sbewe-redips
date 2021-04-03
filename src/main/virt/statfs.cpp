@@ -44,6 +44,7 @@ void StaticFileServer::take(const ConnectionInfo&, redips::http::SharedRRaw rraw
 		if(path.length() > 0 && path[path.length()-1] == FPATHSEP) path = path.substr(0, path.length()-1); //If combined path ends with /, remove it. what if it's a file?
 		normalizeURIPath(path);
 		decodePercent(path, true);
+		if(endsWith(path, FPATHSEP + deff)) path = path.substr(0, path.length()-(deff.length()+1));
 		relp += path;
 		if(relp.length() == 0 || getFileType(relp) == FileType::Directory){ //oh so it is a directory. well then let's get default file in it!
 			auto relpdf = relp + FPATHSEP + deff;
