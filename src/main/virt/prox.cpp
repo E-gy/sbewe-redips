@@ -24,6 +24,7 @@ static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
 				if(p > 0) fwd << ",";
 				fwd << pref << "=";
 				if(isValidIPv6(seg)) fwd << "\"[" << seg << "]\"";
+				else if(seg.find(':') != seg.npos) fwd << "\"" << seg << "\"";
 				else fwd << seg;
 				if(np == h.npos) break;
 				else p = np+1;
