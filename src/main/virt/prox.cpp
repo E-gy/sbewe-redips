@@ -27,19 +27,15 @@ static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
 			return fwd.str();
 		};
 		if(auto xfh = rr->getHeader("X-Forwarded-For")){
-			rr->removeHeader("X-Forwarded-For");
 			rr->setHeader(Header::Forwarded, konvert(*xfh, "for"));
 		}
 		else if(auto xfh = rr->getHeader("X-Forwarded-Host")){
-			rr->removeHeader("X-Forwarded-Host");
 			rr->setHeader(Header::Forwarded, konvert(*xfh, "host"));
 		}
 		else if(auto xfh = rr->getHeader("X-Forwarded-By")){
-			rr->removeHeader("X-Forwarded-By");
 			rr->setHeader(Header::Forwarded, konvert(*xfh, "by"));
 		}
 		else if(auto xfh = rr->getHeader("X-Forwarded-Proto")){
-			rr->removeHeader("X-Forwarded-Proto");
 			rr->setHeader(Header::Forwarded, konvert(*xfh, "proto"));
 		}
 	}
