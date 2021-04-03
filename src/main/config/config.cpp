@@ -83,7 +83,7 @@ void from_json(const json& j, BasicAuth& auth){
 		auto sep = c.find(':');
 		if(sep == std::string::npos) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}");
 		if(sep == 0 || sep == c.length()-1) throw json::type_error::create(301, "User credential must be of shape `${username}:${password}` (both segments non-empty)");
-		for(auto cc : c) if(::iscntrl(cc)) throw json::type_error::create(301, "User credentials can't contain control characters");
+		for(auto cc : c) if(std::iscntrl(cc)) throw json::type_error::create(301, "User credentials can't contain control characters");
 	}
 }
 
