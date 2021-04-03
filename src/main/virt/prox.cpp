@@ -10,7 +10,11 @@ using namespace magikop;
 using namespace http;
 
 static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
-	if(!rr->hasHeader(Header::Forwarded)){ //transition
+	int fwhc = rr->hasHeader(Header::Forwarded) ? 10 : 0;
+	fwhc += rr->hasHeader("X-Forwarded-For");
+	fwhc += rr->hasHeader("X-Forwarded-Host");
+	fwhc += rr->hasHeader("X-Forwarded-Proto");
+	if(fwhc == 1){ //transition
 		auto konvert = [](const std::string& h, const std::string& pref){
 			std::ostringstream fwd;
 			for(std::size_t p = 0; p < h.length();){
@@ -26,18 +30,9 @@ static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
 			}
 			return fwd.str();
 		};
-		if(auto xfh = rr->getHeader("X-Forwarded-For")){
-			rr->setHeader(Header::Forwarded, konvert(*xfh, "for"));
-		}
-		else if(auto xfh = rr->getHeader("X-Forwarded-Host")){
-			rr->setHeader(Header::Forwarded, konvert(*xfh, "host"));
-		}
-		else if(auto xfh = rr->getHeader("X-Forwarded-By")){
-			rr->setHeader(Header::Forwarded, konvert(*xfh, "by"));
-		}
-		else if(auto xfh = rr->getHeader("X-Forwarded-Proto")){
-			rr->setHeader(Header::Forwarded, konvert(*xfh, "proto"));
-		}
+		if(auto xfh = rr->getHeader("X-Forwarded-For")) rr->setHeader(Header::Forwarded, konvert(*xfh, "for"));
+		else if(auto xfh = rr->getHeader("X-Forwarded-Host")) rr->setHeader(Header::Forwarded, konvert(*xfh, "host"));
+		else if(auto xfh = rr->getHeader("X-Forwarded-Proto")) rr->setHeader(Header::Forwarded, konvert(*xfh, "proto"));
 	}
 	//append self
 	auto fwd = rr->getHeader(http::Header::Forwarded);
