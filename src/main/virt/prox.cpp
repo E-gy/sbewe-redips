@@ -11,9 +11,9 @@ using namespace http;
 
 static void processFWD(const ConnectionInfo& inf, const SharedRRaw& rr){
 	int fwhc = rr->hasHeader(Header::Forwarded) ? 10 : 0;
-	fwhc += rr->hasHeader("X-Forwarded-For") ? 1 : 0;
-	fwhc += rr->hasHeader("X-Forwarded-Host") ? 1 : 0;
-	fwhc += rr->hasHeader("X-Forwarded-Proto") ? 1 : 0;
+	fwhc += rr->hasHeader("X-Forwarded-For") || rr->hasHeader("X-Forwarded-for") ? 1 : 0;
+	fwhc += rr->hasHeader("X-Forwarded-Host") || rr->hasHeader("X-Forwarded-host") ? 1 : 0;
+	fwhc += rr->hasHeader("X-Forwarded-Proto") || rr->hasHeader("X-Forwarded-proto") ? 1 : 0;
 	if(fwhc == 1){ //transition
 		auto konvert = [](const std::string& h, const std::string& pref){
 			std::ostringstream fwd;
