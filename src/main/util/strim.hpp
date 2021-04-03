@@ -30,6 +30,8 @@ static inline void trim(std::string &s) {
 
 /// checks if a string begins with a prefix
 static inline bool beginsWith(const std::string& s, const std::string& pref){ return s.rfind(pref, 0) == 0; }
+/// checks if a string ends with a suffix
+static inline bool endsWith(const std::string& s, const std::string& suff){ return s.length() >= suff.length() && s.find(suff, s.length()-suff.length()) != s.npos; }
 
 /// replaces all occurences of `from` with `to` in `str`
 static inline void replaceAll(std::string& str, const std::string& from, const std::string& to){
