@@ -51,8 +51,12 @@ HealthMonitor::SAH HealthMonitor::_add(ConnectionFactory && estconn, const std::
 		auto wr = interim->conn->writer();
 		interim->req.write(wr);
 		engine->engine <<= wr->eod() >> ([=](){
-			engine->engine <<= http::Response::read(interim->conn) >> ([=](auto){
-				shr(Health::Alive);
+			engine->engine <<= http::Response::read(interim->conn) >> ([=](auto resp){
+				if(resp->status == http::Status::OK) shr(Health::Alive);
+				else {
+					std::cerr << "Health check self reported not OK\n";
+					shr(Health::Dead);
+				}
 				interim->conn.reset();
 			}|[=](auto err){
 				std::cerr << "Health check read error: " << err.desc << "\n";
