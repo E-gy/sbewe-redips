@@ -122,16 +122,19 @@ RRReadResult Request::readTitle(const std::string& l){
 	else return RRReadError(Status::BAD_REQUEST, "Not an HTTP");
 	if(auto m = methodFromStr(ms)) method = *m;
 	else return RRReadError(Status::METHOD_NOT_ALLOWED, "Invalid HTTP method");
-	if(ps.length() == 0) path = "/";
-	else if(ps[0] == '/') path = ps;
-	else if(beginsWith(ps, "http")){
-		auto slashslash = ps.find("://");
-		if(slashslash == ps.npos) return RRReadError(Status::BAD_REQUEST, "HTTP full URI without protocol delimiter / request path must start with slash");
-		auto fslash = ps.find('/', slashslash+3);
-		if(fslash == ps.npos) path = "/";
-		else path = ps.substr(fslash);
-	} else return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash");
-	path = ps;
+	if(ps.length() == 0) path = "/"; //empty origin-form
+	else if(ps[0] == '/') path = ps; //origin-form
+	else {
+		auto dotdot = ps.find(':');
+		if(dotdot != ps.npos){
+			auto slash = ps.find('/');
+			if(dotdot < slash){ //absolute-form
+				slash = ps.find('/', beginsWith(ps.substr(dotdot), "://") ? dotdot+3 : 0);
+				if(slash == ps.npos) path = "/"; //empty path inside absolute-form
+				else path = ps.substr(slash);
+			} else return RRReadError(Status::BAD_REQUEST, "HTTP absolute-form path schema can't contain slashes");
+		} else return RRReadError(Status::BAD_REQUEST, "HTTP request path must start with slash"); //invalid form
+	}
 	return RRReadResult::Ok(l.length());
 }
 
