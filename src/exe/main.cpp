@@ -101,7 +101,7 @@ int main(int argc, char* args[]){
 					case LoadBalancingMethod::RoundRobin:{
 						auto bal = std::make_shared<virt::RoundRobinBalancer<virt::ProxyConnectionFactory>>();
 						for(auto h : u.second.hosts){
-							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout, 2);
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout, 0);
 							if(auto err = hpfr.err()){
 								std::cerr << "Ups host address lookup error: " << err << "\n";
 								okay = false;
@@ -115,7 +115,7 @@ int main(int argc, char* args[]){
 					case LoadBalancingMethod::FailOver:{
 						auto bal = std::make_shared<virt::FailOverBalancer<virt::ProxyConnectionFactory>>(&lbhmon, true);
 						for(auto h : u.second.hosts){
-							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout, 2);
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout, 0);
 							if(auto err = hpfr.err()){
 								std::cerr << "Ups host address lookup error: " << *err << "\n";
 								okay = false;
@@ -133,7 +133,7 @@ int main(int argc, char* args[]){
 					case LoadBalancingMethod::FailRobin:{
 						auto bal = std::make_shared<virt::FailRobinBalancer<virt::ProxyConnectionFactory>>(&lbhmon, true);
 						for(auto h : u.second.hosts){
-							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout, 2);
+							auto hpfr = fiz::findConnectionFactory(h.address, &ioengine, &ticktack, estconntimeout, 0);
 							if(auto err = hpfr.err()){
 								std::cerr << "Ups host address lookup error: " << err << "\n";
 								okay = false;
